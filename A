@@ -1,0 +1,38 @@
+----------------------------------------
+
+
+print(" LOADING . . . ")
+if game.PlaceId == 914010731 then
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Note",
+        Text = "WAIT FEW SECONDS TO LOAD",
+        Icon = "rbxassetid://2541869220",
+        Duration = 10
+    })
+    wait()
+    loadstring(game:HttpGet("https://gitlab.com/vugiakhiem2106/game/-/raw/main/"..game.PlaceId.."_RoGhoul"..".lua"))()
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Note",
+        Text = "WAIT FEW SECONDS TO LOAD",
+        Icon = "rbxassetid://2541869220",
+        Duration = 10
+    })
+    wait()
+    loadstring(game:HttpGet("https://gitlab.com/vugiakhiem2106/game/-/raw/main/"..game.PlaceId.."_BuildBoatForTreasure"..".lua"))()
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Note",
+        Text = "WAIT FEW SECONDS TO LOAD",
+        Icon = "rbxassetid://2541869220",
+        Duration = 10
+    })
+    wait()
+    loadstring(game:HttpGet("https://gitlab.com/vugiakhiem2106/game/-/raw/main/"..game.PlaceId.."_TLS"..".lua"))()
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Note",
+        Text = "WAIT FEW SECONDS TO LOAD",
+        Icon = "rbxassetid://2541869220",
+        Duration = 10
+    })
+    wait()
+    loadstring(game:HttpGet("https://gitlab.com/vugiakhiem2106/game/-/raw/main/"..game.PlaceId.."_OPL"..".lua"))()
+end
