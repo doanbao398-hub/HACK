@@ -1,0 +1,506 @@
+-- LocalScript trong StarterPlayerScripts
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local backpack = player:WaitForChild("Backpack")
+
+-- Lấy HumanoidRootPart an toàn
+local function getHRP()
+    local character = player.Character or player.CharacterAdded:Wait()
+    return character:WaitForChild("HumanoidRootPart")
+end
+
+-------------------------------------------------
+-- 🥭 Danh sách trái
+-------------------------------------------------
+local fruitNames = {
+    "Barrier Fruit", "Bomb Fruit", "Swim Fruit", "Slip Fruit", "Chop Fruit", "Clone Fruit",
+    "Hot Fruit", "Clear Fruit", "Float Fruit", "Spin Fruit", "Spring Fruit", "Smelt Fruit",
+    "Diamond Fruit", "Gum Fruit", "Hobby Fruit", "Candy Fruit", "Chilly Fruit", "Gas Fruit",
+    "Dark Fruit", "Flare Fruit", "Light Fruit", "Smoke Fruit", "Sand Fruit", "Rumble Fruit",
+    "Magma Fruit", "Ope Fruit", "Snow Fruit", "Gravity Fruit", "Quake Fruit", "Venom Fruit",
+    "Shadow Fruit", "Phoenix Fruit"
+}
+
+-- Teleport + click 1 trái
+local function collectFruit(fruit)
+    local targetCFrame
+    if fruit:IsA("BasePart") then
+        targetCFrame = fruit.CFrame + Vector3.new(0, 3, 0)
+    elseif fruit:IsA("Model") then
+        if fruit.PrimaryPart then
+            targetCFrame = fruit.PrimaryPart.CFrame + Vector3.new(0, 3, 0)
+        else
+            local bp = fruit:FindFirstChildWhichIsA("BasePart", true)
+            if bp then targetCFrame = bp.CFrame + Vector3.new(0, 3, 0) end
+        end
+    end
+
+    if targetCFrame then
+        local hrp = getHRP()
+        hrp.CFrame = targetCFrame
+        task.wait(0.3)
+
+        local click = fruit:FindFirstChildWhichIsA("ClickDetector", true)
+        if click then
+            fireclickdetector(click)
+        end
+    end
+end
+
+-------------------------------------------------
+-- 💰 Chest Helper
+-------------------------------------------------
+local function getChestPosition(c)
+	if c:IsA("BasePart") then
+		return c.Position
+	elseif c:IsA("Model") then
+		if c.PrimaryPart then
+			return c.PrimaryPart.Position
+		else
+			local bp = c:FindFirstChildWhichIsA("BasePart", true)
+			if bp then return bp.Position end
+		end
+	end
+	return nil
+end
+
+-------------------------------------------------
+-- 🥤 Juice Routine Helper
+-------------------------------------------------
+-- 📦 danh sách crates
+local cratesFolder = workspace:WaitForChild("Barrels"):WaitForChild("Crates")
+
+local function getPosition(obj)
+	if obj:IsA("BasePart") then
+		return obj.Position
+	elseif obj:IsA("Model") then
+		if obj.PrimaryPart then
+			return obj.PrimaryPart.Position
+		else
+			local bp = obj:FindFirstChildWhichIsA("BasePart", true)
+			if bp then return bp.Position end
+		end
+	end
+	return nil
+end
+
+local function teleportAndClick(obj)
+	local pos = getPosition(obj)
+	if pos then
+		getHRP().CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
+		local cd = obj:FindFirstChildWhichIsA("ClickDetector", true)
+		if cd then
+			fireclickdetector(cd)
+		end
+	end
+end
+
+local function equipAndClick(tool)
+	if not tool or not tool:IsA("Tool") then return end
+	local character = player.Character or player.CharacterAdded:Wait()
+	local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid")
+	pcall(function() humanoid:EquipTool(tool) end)
+
+	local timeout, waited = 3, 0
+	while tool.Parent ~= character and waited < timeout do
+		task.wait(0.1)
+		waited += 0.1
+	end
+
+	if tool.Parent == character then
+		pcall(function()
+			if typeof(tool.Activate) == "function" then
+				tool:Activate()
+				task.wait(0.15)
+				if typeof(tool.Deactivate) == "function" then
+					tool:Deactivate()
+				end
+			else
+				for _, desc in ipairs(tool:GetDescendants()) do
+					if desc:IsA("ClickDetector") then
+						fireclickdetector(desc)
+					end
+				end
+			end
+		end)
+	end
+end
+
+local juiceList = {
+	"Coconut Milk", "Fruit Juice", "Pumpkin Juice", "Sour Juice",
+	"Pear Juice", "Banana Juice", "Apple Juice"
+}
+
+local function waitForAnyJuice()
+	while true do
+		for _, name in ipairs(juiceList) do
+			if backpack:FindFirstChild(name) then
+				return true
+			end
+		end
+		task.wait(0.2)
+	end
+end
+
+local function fullRoutine()
+	-- B1: crates
+	for _, crate in ipairs(cratesFolder:GetChildren()) do
+		teleportAndClick(crate)
+		task.wait(0.3)
+	end
+
+	-- B2: mixers
+	local kitchen = workspace.Island8.Kitchen:GetChildren()[3].JuicingBowl
+	local mixer1 = kitchen:FindFirstChild("Mixer1")
+	local mixer2 = kitchen:FindFirstChild("Mixer2")
+	if mixer1 then teleportAndClick(mixer1) task.wait(0.5) end
+	if mixer2 then teleportAndClick(mixer2) task.wait(0.5) end
+
+	waitForAnyJuice()
+
+	-- B3: Stone[85]
+	local stone85 = workspace.IslandSnowyMountains.Stone:GetChildren()[85]
+	if stone85 then teleportAndClick(stone85) task.wait(0.5) end
+
+	-- B4: dùng juice
+	local hasJuice = true
+	while hasJuice do
+		hasJuice = false
+		for _, name in ipairs(juiceList) do
+			local tool = backpack:FindFirstChild(name)
+			if tool then
+				hasJuice = true
+				equipAndClick(tool)
+				task.wait(0.4)
+			end
+		end
+	end
+end
+
+-------------------------------------------------
+-- 🎯 AUTO PACKAGE + TELE NPC (THÊM MỚI)
+-------------------------------------------------
+
+-- Lấy RemoteEvent của QuestFishMerchant
+local function getPackageRemote()
+    local ok, remote = pcall(function()
+        return workspace
+            :WaitForChild("Merchants")
+            :WaitForChild("QuestFishMerchant")
+            :WaitForChild("Clickable")
+            :WaitForChild("Retum")
+    end)
+    return ok and remote or nil
+end
+
+-- Gửi "Package" rồi "Close" cho đến khi có item
+local function autoGetPackage()
+    local tries = 0
+    while tries < 10 do
+        local remote = getPackageRemote()
+        if remote and remote:IsA("RemoteEvent") then
+            pcall(function() remote:FireServer("Package") end)
+            task.wait(0.35)
+            pcall(function() remote:FireServer("Close") end)
+        end
+
+        -- kiểm tra có Package chưa
+        local bp = player:FindFirstChild("Backpack")
+        local ch = player.Character
+        if (bp and bp:FindFirstChild("Package")) or (ch and ch:FindFirstChild("Package")) then
+            print("✅ Đã lấy Package.")
+            return true
+        end
+
+        tries += 1
+        task.wait(0.5)
+    end
+    warn("⚠️ Không thể lấy Package sau nhiều lần thử.")
+    return false
+end
+
+-- Equip + kích hoạt Package (click ảo)
+local function equipAndActivatePackage()
+	local bp = player:FindFirstChild("Backpack")
+	if not bp then return false end
+
+	local packageTool = bp:FindFirstChild("Package")
+	if packageTool then
+		local character = player.Character or player.CharacterAdded:Wait()
+		packageTool.Parent = character
+		if packageTool:IsA("Tool") then
+			pcall(function() packageTool:Activate() end)
+		end
+		return true
+	end
+
+	return false
+end
+
+-- Lấy CFrame của NPC (không đụng hàm getPosition ở trên)
+local function getNPCPositionCF(obj)
+	if obj:IsA("BasePart") then
+		return obj.CFrame
+	elseif obj:IsA("Model") then
+		local part = obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
+		if part then return part.CFrame end
+	end
+	return nil
+end
+
+-- Teleport tới NPC (có chống giật nhẹ)
+local function teleportToNPC(npc)
+	local hrp = getHRP()
+	if not hrp then return end
+	local npcCF = getNPCPositionCF(npc)
+	if not npcCF then return end
+
+	pcall(function()
+		hrp.AssemblyLinearVelocity = Vector3.zero
+		hrp.AssemblyAngularVelocity = Vector3.zero
+	end)
+
+	hrp.CFrame = npcCF * CFrame.new(0, 0, 3.1)
+
+	task.wait(0.05)
+	local character = player.Character
+	if character then
+		for _, part in ipairs(character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.Anchored = true
+				pcall(function()
+					part.AssemblyLinearVelocity = Vector3.zero
+					part.AssemblyAngularVelocity = Vector3.zero
+				end)
+			end
+		end
+	end
+
+	task.delay(0.7, function()
+		local char = player.Character
+		if char then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.Anchored = false
+				end
+			end
+		end
+	end)
+end
+
+-- Danh sách NPC để teleport (bạn có thể chỉnh thêm/bớt)
+local merchantNames = {
+	"AffinityMerchant",
+	"BetterDrinkMerchant",
+	"Boat1Merchant",
+	"Boat2Merchant",
+	"Boat3Merchant",
+	"Boat4Merchant",
+	"Boat5Merchant",
+	"DrinkMerchant",
+	"EmoteMerchant",
+	"ExpertiseMerchant",
+	"FishMerchant",
+	"FlailMerchant",
+	"FriendMerchant",
+	"KrizmaMerch",
+	"QuestMerchant",
+	"QuestMerchant2",
+	"SniperMerchant",
+	"SwordMerchant"
+}
+
+local function teleportAllMerchants()
+	local merchantsFolder = workspace:FindFirstChild("Merchants")
+	if not merchantsFolder then
+		warn("⚠️ Không tìm thấy workspace.Merchants!")
+		return
+	end
+
+	for _, name in ipairs(merchantNames) do
+		local npc = merchantsFolder:FindFirstChild(name)
+		if npc then
+			teleportToNPC(npc)
+			print("✅ Tele tới " .. name)
+		else
+			warn("⚠️ Không tìm thấy NPC:", name)
+		end
+		task.wait(0.9)
+	end
+end
+
+-- Loop tổng: lấy Package → equip → teleport tất cả → lặp
+local function packageNPCLoop()
+    -- 1) Lấy Package
+    local ok = autoGetPackage()
+    if not ok then return end
+
+    -- 2) Equip + activate
+    equipAndActivatePackage()
+
+    -- 3) Tele lần lượt
+    teleportAllMerchants()
+end
+
+-------------------------------------------------
+-- 🎨 Tạo UI
+-------------------------------------------------
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CollectorMenu"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 400, 0, 400) -- tăng chiều cao để chứa nút thứ 4 (Kiểu A)
+frame.Position = UDim2.new(0.3, 0, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
+frame.Visible = false
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+title.Text = "Collector Menu"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 22
+title.Parent = frame
+
+-- Nút Auto Fruit
+local fruitButton = Instance.new("TextButton")
+fruitButton.Size = UDim2.new(0.6, 0, 0, 50)
+fruitButton.Position = UDim2.new(0.2, 0, 0.3, 0)
+fruitButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+fruitButton.Text = "Auto Fruit: OFF"
+fruitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+fruitButton.Font = Enum.Font.SourceSans
+fruitButton.TextSize = 20
+fruitButton.Parent = frame
+
+-- Nút Auto Chest
+local chestButton = Instance.new("TextButton")
+chestButton.Size = UDim2.new(0.6, 0, 0, 50)
+chestButton.Position = UDim2.new(0.2, 0, 0.55, 0)
+chestButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+chestButton.Text = "Auto Chest: OFF"
+chestButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+chestButton.Font = Enum.Font.SourceSans
+chestButton.TextSize = 20
+chestButton.Parent = frame
+
+-- Nút Auto Juice Routine
+local juiceButton = Instance.new("TextButton")
+juiceButton.Size = UDim2.new(0.6, 0, 0, 50)
+juiceButton.Position = UDim2.new(0.2, 0, 0.8, 0)
+juiceButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+juiceButton.Text = "Auto Juice: OFF"
+juiceButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+juiceButton.Font = Enum.Font.SourceSans
+juiceButton.TextSize = 20
+juiceButton.Parent = frame
+
+-- Nút Auto Package NPC (THÊM MỚI)
+_G.autoPackageNPC = false
+local packageButton = Instance.new("TextButton")
+packageButton.Size = UDim2.new(0.6, 0, 0, 50)
+packageButton.Position = UDim2.new(0.2, 0, 1.05, 0) -- dưới JuiceButton
+packageButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+packageButton.Text = "Auto Package NPC: OFF"
+packageButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+packageButton.Font = Enum.Font.SourceSans
+packageButton.TextSize = 20
+packageButton.Parent = frame
+
+-------------------------------------------------
+-- ⚙️ Trạng thái
+-------------------------------------------------
+_G.autoFruit = false
+_G.autoChest = false
+_G.autoJuice = false
+
+fruitButton.MouseButton1Click:Connect(function()
+	_G.autoFruit = not _G.autoFruit
+	fruitButton.Text = "Auto Fruit: " .. (_G.autoFruit and "ON" or "OFF")
+end)
+
+chestButton.MouseButton1Click:Connect(function()
+	_G.autoChest = not _G.autoChest
+	chestButton.Text = "Auto Chest: " .. (_G.autoChest and "ON" or "OFF")
+end)
+
+juiceButton.MouseButton1Click:Connect(function()
+	_G.autoJuice = not _G.autoJuice
+	juiceButton.Text = "Auto Juice: " .. (_G.autoJuice and "ON" or "OFF")
+end)
+
+packageButton.MouseButton1Click:Connect(function()
+	_G.autoPackageNPC = not _G.autoPackageNPC
+	packageButton.Text = "Auto Package NPC: " .. (_G.autoPackageNPC and "ON" or "OFF")
+end)
+
+-- Toggle menu bằng phím =
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not gameProcessed and input.KeyCode == Enum.KeyCode.Equals then
+		frame.Visible = not frame.Visible
+	end
+end)
+
+-------------------------------------------------
+-- ♻️ Vòng lặp Auto (giữ nguyên + thêm mới)
+-------------------------------------------------
+task.spawn(function()
+    while task.wait(1) do
+        if _G.autoFruit then
+            for _, name in ipairs(fruitNames) do
+                for _, obj in ipairs(workspace:GetChildren()) do
+                    if obj.Name == name then
+                        pcall(collectFruit, obj)
+                        task.wait(0.5)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(1) do
+        if _G.autoChest then
+            local chests = workspace:FindFirstChild("Chests")
+            if chests then
+                for _, c in ipairs(chests:GetChildren()) do
+                    local pos = getChestPosition(c)
+                    if pos then
+                        pcall(function()
+                            getHRP().CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
+                        end)
+                    end
+                    task.wait(0.5)
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+	while task.wait(1) do
+		if _G.autoJuice then
+			pcall(fullRoutine)
+		end
+	end
+end)
+
+-- ✅ Vòng lặp Auto Package NPC (THÊM MỚI)
+task.spawn(function()
+	while task.wait(1) do
+		if _G.autoPackageNPC then
+			pcall(function()
+				packageNPCLoop() -- lấy package -> equip -> tele tất cả -> lặp
+			end)
+		end
+	end
+end)
