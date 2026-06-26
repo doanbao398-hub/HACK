@@ -55,7 +55,7 @@ local MonsterGroups = {
         "Lv15 Boar", "Lv15 Thug", "Lv16 Boar", "Lv17 Thug", "Lv20 Thief", "Lv22 Angry Bobby", "Lv23 Thug", 
         "Lv24 Angry Bobbi", "Lv24 Fred", "Lv24 Thug", "Lv28 Fredde", "Lv28 Freyd", "Lv28 Friedrich", 
         "Lv29 Angry Bobber", "Lv29 Frued", "Lv30 Thug", "Lv32 Fredric", "Lv32 Thief", "Lv34 Freddi", 
-        "Lv35 Angry Bobb", "Lv36 Gunslinger", "Lv40 Cave Demon [Weakened]", "Lv50 Gunslinger", 
+        "Lv35 Angry Bobb", "Lv40 Cave Demon [Weakened]", 
         "Lv186 Cave Demon", "Lv188 Cave Demon", "Lv198 Cave Demon"
     },
     ["Lv200 - Lv300"] = {},
