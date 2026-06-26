@@ -74,7 +74,7 @@ local BossData = {
     ["Lv20000 Whitebeard"] = 120,
     ["Lv8000 Gunner Captain"] = 100,
     ["Lv2000 Crocodile"] = 120,
-    ["Lv2000 Vokun"] = 70
+    ["Lv2000 Vokun"] = 95
 }
 local bossListOrder = {"Lv20000 Whitebeard", "Lv8000 Gunner Captain", "Lv2000 Crocodile", "Lv2000 Vokun"}
 
