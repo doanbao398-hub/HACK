@@ -33,7 +33,7 @@ _G.BossDistances = {
     ["Lv20000 Whitebeard"] = 120,
     ["Lv8000 Gunner Captain"] = 100,
     ["Lv2000 Crocodile"] = 120,
-    ["Lv2000 Vokun"] = 70
+    ["Lv2000 Vokun"] = 94
 }
 
 _G.autoFarm = false
@@ -86,16 +86,6 @@ local currentSelectedGroup = "Farm Toàn Bộ"
 local currentTarget = nil
 local monsterIndex = 1
 local farmConnection = nil
-
-local fruitList = {
-    "Barrier Fruit", "Bomb Fruit", "Swim Fruit", "Slip Fruit", "Chop Fruit", "Clone Fruit",
-    "Hot Fruit", "Clear Fruit", "Float Fruit", "Spin Fruit", "Spring Fruit", "Smelt Fruit",
-    "Diamond Fruit", "Gum Fruit", "Hobby Fruit", "Candy Fruit", "Chilly Fruit", "Gas Fruit",
-    "Dark Fruit", "Flare Fruit", "Light Fruit", "Smoke Fruit", "Sand Fruit", "Rumble Fruit",
-    "Magma Fruit", "Ope Fruit", "Snow Fruit", "Gravity Fruit", "Quake Fruit", "Venom Fruit",
-    "Shadow Fruit", "Phoenix Fruit"
-}
-
 local juiceList = {
     "Coconut Milk", "Fruit Juice", "Pumpkin Juice",
     "Sour Juice", "Pear Juice", "Banana Juice", "Apple Juice", "Golden Apple"
@@ -415,17 +405,24 @@ end
 
 local function startFruitLoop()
     while _G.autoFruitRemote do
-        for f = 1, #fruitList do
+        -- Quét toàn bộ vật phẩm nằm ngay trong thư mục workspace
+        for _, obj in ipairs(workspace:GetChildren()) do
             if not _G.autoFruitRemote then break end
-            local fruitName = fruitList[f]
-            local targetFruit = workspace:FindFirstChild(fruitName)
-            if targetFruit then
-                local cd = targetFruit:FindFirstChildWhichIsA("ClickDetector", true)
-                if cd then pcall(fireclickdetector, cd) end
-                local children = targetFruit:GetChildren()
-                for c = 1, #children do
-                    local subCd = children[c]:FindFirstChildWhichIsA("ClickDetector", true)
-                    if subCd then pcall(fireclickdetector, subCd) end
+            
+            -- Kiểm tra xem tên vật phẩm có kết thúc bằng đuôi "Fruit" hay không
+            if string.sub(obj.Name, -5) == "Fruit" then
+                -- Kích hoạt ClickDetector nếu có ở vật phẩm cha
+                local cd = obj:FindFirstChildWhichIsA("ClickDetector", true)
+                if cd then 
+                    pcall(fireclickdetector, cd) 
+                end
+                
+                -- Quét thêm các con bên trong phòng trường hợp cấu trúc công cụ phức tạp
+                for _, child in ipairs(obj:GetChildren()) do
+                    local subCd = child:FindFirstChildWhichIsA("ClickDetector", true)
+                    if subCd then 
+                        pcall(fireclickdetector, subCd) 
+                    end
                 end
             end
         end
