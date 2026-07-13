@@ -13,7 +13,7 @@ local pcall = pcall
 -- =========================================================================
 _G.AutoTreoSam = false
 _G.AutoVutSam = false
-local IntervalTreoSam = 10 -- 15 phút = 900 giây
+local IntervalTreoSam = 60 -- 15 phút = 900 giây
 
 -- Hàm đếm chính xác số lượng Compass đang có trong balo và trên tay
 local function getCompassCount()
