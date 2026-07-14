@@ -97,7 +97,7 @@ local function chayLuongLaySam()
                 -- THỰC HIỆN CLICK VÒNG LẶP 4 LẦN LIÊN TIẾP
                 for i = 1, 4 do
                     VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-                    task_wait(0.05)
+                    task_wait(0.1)
                     VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
                     
                     -- Nghỉ một chút giữa các lần click, trừ lần cuối cùng
