@@ -13,7 +13,7 @@ local pcall = pcall
 -- =========================================================================
 _G.AutoTreoSam = false
 _G.AutoVutSam = false
-local IntervalTreoSam = 60 -- 15 phút = 900 giây
+local IntervalTreoSam = 60 -- 15 phút = 900 giây (Hiện tại bạn đang để 60 giây để test)
 
 -- Hàm đếm chính xác số lượng Compass đang có trong balo và trên tay
 local function getCompassCount()
@@ -89,23 +89,23 @@ local function chayLuongLaySam()
         if options then
             local optionButton = options:WaitForChild("Option", 5)
             if optionButton then
-                task_wait(0.3) -- Chờ UI định hình tọa độ ổn định
+                task_wait(0.4) -- Chờ UI định hình tọa độ ổn định hẳn
                 
                 local x = optionButton.AbsolutePosition.X + (optionButton.AbsoluteSize.X / 2)
                 local y = optionButton.AbsolutePosition.Y + (optionButton.AbsoluteSize.Y / 2) + 58
                 
-                -- LẦN CLICK THỨ 1
-                VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-                task_wait(0.05)
-                VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
-                
-                task_wait(0.2) -- Giãn cách nhận lệnh
-                
-                -- LẦN CLICK THỨ 2
-                VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-                task_wait(0.05)
-                VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
-                print("[Hệ thống] Đã nhấn đúp nhận nhiệm vụ.")
+                -- THỰC HIỆN CLICK VÒNG LẶP 4 LẦN LIÊN TIẾP
+                for i = 1, 4 do
+                    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+                    task_wait(0.05)
+                    VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+                    
+                    -- Nghỉ một chút giữa các lần click, trừ lần cuối cùng
+                    if i < 4 then
+                        task_wait(0.15) 
+                    end
+                end
+                print("[Hệ thống] Đã nhấn liên tiếp 4 lần nhận nhiệm vụ.")
                 
                 -- Kiểm tra thành quả cấp vật phẩm Compass
                 task_wait(1.0)
@@ -136,13 +136,13 @@ end
 -- =========================================================================
 -- 🔄 VÒNG LẶP CHẠY NGẦM THỜI GIAN (TREO SAM & VỨT SAM)
 -- =========================================================================
--- Luồng 1: Vòng lặp Treo Sam hằng ngày (15 phút một lần)
+-- Luồng 1: Vòng lặp Treo Sam hằng ngày
 task.spawn(function()
     while true do
         if _G.AutoTreoSam then
             print("[Auto Treo] Đến giờ đi lấy nhiệm vụ Sam hằng ngày...")
             pcall(chayLuongLaySam)
-            task_wait(IntervalTreoSam) -- Chờ đúng 15 phút để chạy lại
+            task_wait(IntervalTreoSam)
         else
             task_wait(1)
         end
@@ -252,14 +252,14 @@ BtnQuestNow.MouseButton1Click:Connect(function()
     BtnQuestNow.Text = "⚡ NHẬN SAM NGAY LẬP TỨC"
 end)
 
--- NÚT TOGLE 2: TỰ ĐỘNG TREO SAM (15 PHÚT / LẦN)
+-- NÚT TOGGLE 2: TỰ ĐỘNG TREO SAM (15 PHÚT / LẦN)
 local BtnToggleTreo = Instance.new("TextButton")
 BtnToggleTreo.Parent = MainFrame
 BtnToggleTreo.Position = UDim2.new(0, 15, 0, 112)
 BtnToggleTreo.Size = UDim2.new(1, -30, 0, 42)
 BtnToggleTreo.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 BtnToggleTreo.Font = Enum.Font.GothamBold
-BtnToggleTreo.Text = "📜 TREO SAM (15 PHÚT/LẦN) : OFF"
+BtnToggleTreo.Text = "📜 TREO SAM : OFF"
 BtnToggleTreo.TextColor3 = Color3.fromRGB(255, 100, 100)
 BtnToggleTreo.TextSize = 11
 Instance.new("UICorner", BtnToggleTreo).CornerRadius = UDim.new(0, 6)
@@ -269,12 +269,12 @@ Stroke2.Color = Color3.fromRGB(180, 60, 60)
 BtnToggleTreo.MouseButton1Click:Connect(function()
     _G.AutoTreoSam = not _G.AutoTreoSam
     if _G.AutoTreoSam then
-        BtnToggleTreo.Text = "📜 TREO SAM (15 PHÚT/LẦN) : ON"
+        BtnToggleTreo.Text = "📜 TREO SAM : ON"
         BtnToggleTreo.TextColor3 = Color3.fromRGB(80, 255, 120)
         Stroke2.Color = Color3.fromRGB(0, 200, 100)
         BtnToggleTreo.BackgroundColor3 = Color3.fromRGB(25, 45, 30)
     else
-        BtnToggleTreo.Text = "📜 TREO SAM (15 PHÚT/LẦN) : OFF"
+        BtnToggleTreo.Text = "📜 TREO SAM : OFF"
         BtnToggleTreo.TextColor3 = Color3.fromRGB(255, 100, 100)
         Stroke2.Color = Color3.fromRGB(180, 60, 60)
         BtnToggleTreo.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
