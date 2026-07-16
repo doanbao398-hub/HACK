@@ -1,1 +1,805 @@
+-- =====================================================================
+-- 🎨 SUPREME HUB V5.0 - MODERN UI FRAMEWORK (100% PURE UI)
+-- Phong cách: Modern Dark Theme, Mobile-First, Anti-Click AFK
+-- =====================================================================
 
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+if CoreGui:FindFirstChild("SupremeHubV5") then CoreGui.SupremeHubV5:Destroy() end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SupremeHubV5"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- =====================================================================
+-- 🌐 BẢNG ĐƯỜNG DẪN TÍN HIỆU CỦA CHỨC NĂNG (GỬI LẠI ĐỂ GEMINI ĐỔ LOGIC VÀO)
+-- =====================================================================
+_G.UI_Signals = {
+    -- Trang 1: Farm & Tiện ích
+    OnToggleAutoFarm = function(state) print("Auto Farm:", state) end,
+    OnToggleAutoFruit = function(state) print("Auto Fruit:", state) end,
+    OnToggleAutoCompass = function(state) print("Auto Compass:", state) end,
+    OnToggleAutoRespawn = function(state) print("Auto Respawn:", state) end,
+    OnToggleFly = function(state) print("Fly State:", state) end,
+    OnFlySpeedChanged = function(value) print("Fly Speed:", value) end,
+
+    -- Trang 2: Quái & Boss
+    OnToggleFarmMonster = function(state) print("Farm Monster:", state) end,
+    OnRefreshItems = function(updateUI_Callback) updateUI_Callback({"Vũ Khí 1", "Kiếm Bản", "Trái Ác Quỷ"}) end,
+    OnSelectFarmItem = function(itemName) print("Selected Item:", itemName) end,
+    OnToggleAutoEquip = function(state) print("Auto Equip Item:", state) end,
+    OnSelectFarmMode = function(modeName) print("Farm Mode Selected:", modeName) end, -- "Spam Skills" hoặc "Normal"
+    OnKeySpamToggled = function(keyName, state) print("Key Spam:", keyName, state) end,
+    OnSelectMonsterGroup = function(groupName) print("Monster Group:", groupName) end,
+    OnMonsterDistanceChanged = function(value) print("Monster Distance:", value) end,
+    OnToggleAutoBoss = function(state) print("Auto Kill Boss:", state) end,
+    OnBossSelectToggled = function(bossName, state) print("Boss Selected:", bossName, state) end,
+    OnBossDistanceChanged = function(bossName, value) print("Distance for " .. bossName .. ":", value) end,
+
+    -- Trang 3: Người Chơi
+    OnTeleportToPlayer = function() print("Teleport to selected player") end,
+    OnToggleSpectatePlayer = function(state) print("Spectate Player:", state) end,
+    OnToggleKillPlayer = function(state) print("Kill Player:", state) end,
+    OnSelectTargetPlayer = function(targetPlayer) print("Targeting Player:", targetPlayer.Name) end,
+
+    -- Trang 4: Sam
+    OnInstantGetSam = function() print("Running Sam Thread Now") end,
+    OnToggleLoopSam = function(state) print("Loop Sam:", state) end,
+    OnToggleAutoDropCompass = function(state) print("Auto Drop Compass:", state) end,
+
+    -- Trang 5: Đổi tên NPC
+    OnToggleRenameNPCs = function(state) print("Rename All NPCs:", state) end,
+
+    -- Trang 6: Định vị NPC
+    OnTeleportToNPC = function(category, npcName) print("TP to NPC:", category, npcName) end,
+
+    -- Trang 7: Bản đồ đảo
+    OnTeleportToIsland = function(islandName) print("TP to Island:", islandName) end
+}
+
+-- ==========================================================
+-- ⚙️ CONFIG MẦU HIỆN ĐẠI & HÀM PHỤ TRỢ UI
+-- ==========================================================
+local Theme = {
+    Background = Color3.fromRGB(20, 20, 26),
+    TopBar = Color3.fromRGB(28, 28, 36),
+    Card = Color3.fromRGB(28, 28, 38),
+    InnerCard = Color3.fromRGB(18, 18, 24),
+    TextPrimary = Color3.fromRGB(245, 245, 250),
+    TextMuted = Color3.fromRGB(145, 147, 160),
+    Accent = Color3.fromRGB(64, 132, 242), -- Màu xanh Modern giống iOS/Win11
+    SwitchOn = Color3.fromRGB(52, 199, 89),
+    SwitchOff = Color3.fromRGB(48, 48, 56),
+    Border = Color3.fromRGB(40, 40, 52),
+    AccentMuted = Color3.fromRGB(235, 77, 75)
+}
+
+local function makeDraggable(frame, handle)
+    local dragging, dragInput, dragStart, startPos
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+-- ==========================================================
+-- 🎨 KHỞI TẠO NÚT MINI MỞ/ĐÓNG MENU (ANTI-CLICK)
+-- ==========================================================
+local MiniBtn = Instance.new("TextButton")
+MiniBtn.Name = "MiniToggle"
+MiniBtn.Parent = ScreenGui
+MiniBtn.Position = UDim2.new(0, 20, 0, 20)
+MiniBtn.Size = UDim2.new(0, 45, 0, 45)
+MiniBtn.BackgroundColor3 = Theme.TopBar
+MiniBtn.Font = Enum.Font.GothamBold
+MiniBtn.Text = "💎"
+MiniBtn.TextSize = 20
+MiniBtn.TextColor3 = Theme.TextPrimary
+MiniBtn.Active = true
+Instance.new("UICorner", MiniBtn).CornerRadius = UDim.new(1, 0)
+local MiniStroke = Instance.new("UIStroke", MiniBtn)
+MiniStroke.Thickness = 1.5
+MiniStroke.Color = Theme.Border
+makeDraggable(MiniBtn, MiniBtn)
+
+-- ==========================================================
+-- 📱 KHỞI TẠO KHUNG CHÍNH (MAIN FRAME) - MOBILE FIRST
+-- ==========================================================
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.Size = UDim2.new(0, 450, 0, 340) -- Kích cỡ siêu chuẩn mobile gọn gàng
+MainFrame.BackgroundColor3 = Theme.Background
+MainFrame.Active = true
+MainFrame.ClipsDescendants = true 
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Thickness = 1.2
+MainStroke.Color = Theme.Border
+
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Theme.TopBar
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BorderSizePixel = 0
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 12)
+makeDraggable(MainFrame, TopBar)
+
+-- Bịt góc vuông phía dưới của TopBar
+local TopBarPatch = Instance.new("Frame")
+TopBarPatch.Name = "TopBarPatch"
+TopBarPatch.Parent = TopBar
+TopBarPatch.BackgroundColor3 = Theme.TopBar
+TopBarPatch.Position = UDim2.new(0, 0, 1, -6)
+TopBarPatch.Size = UDim2.new(1, 0, 0, 6)
+TopBarPatch.BorderSizePixel = 0
+
+local Title = Instance.new("TextLabel")
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Size = UDim2.new(0, 150, 1, 0)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "💎 SUPREME HUB v5.0"
+Title.TextColor3 = Theme.TextPrimary
+Title.TextSize = 12
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Container chứa các Menu Chip (Pills/Tags) dạng lướt ngang nếu thừa màn hình
+local ScrollTabContainer = Instance.new("ScrollingFrame")
+ScrollTabContainer.Name = "ScrollTabContainer"
+ScrollTabContainer.Parent = MainFrame
+ScrollTabContainer.BackgroundTransparency = 1
+ScrollTabContainer.Position = UDim2.new(0, 10, 0, 48)
+ScrollTabContainer.Size = UDim2.new(1, -20, 0, 30)
+ScrollTabContainer.CanvasSize = UDim2.new(0, 520, 0, 0) -- Chiều ngang thoải mái cho các Pill
+ScrollTabContainer.ScrollBarThickness = 0
+ScrollTabContainer.ScrollingDirection = Enum.ScrollingDirection.Horizontal
+
+local TabListLayout = Instance.new("UIListLayout")
+TabListLayout.Parent = ScrollTabContainer
+TabListLayout.FillDirection = Enum.FillDirection.Horizontal
+TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabListLayout.Padding = UDim.new(0, 6)
+
+local ViewportContent = Instance.new("Frame")
+ViewportContent.Name = "ViewportContent"
+ViewportContent.Parent = MainFrame
+ViewportContent.BackgroundTransparency = 1
+ViewportContent.Position = UDim2.new(0, 12, 0, 88)
+ViewportContent.Size = UDim2.new(1, -24, 1, -98)
+
+-- ==========================================================
+-- 🛠️ HÀM TẠO THÀNH PHẦN GIAO DIỆN CHUẨN (FACTORY FUNCTIONS)
+-- ==========================================================
+local activePages = {}
+local tabButtons = {}
+
+local function createPage(pageName)
+    local page = Instance.new("ScrollingFrame")
+    page.Name = "Page_" .. pageName
+    page.Parent = ViewportContent
+    page.BackgroundTransparency = 1
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.ScrollBarThickness = 2
+    page.ScrollBarImageColor3 = Theme.Border
+    page.Visible = false
+    
+    local list = Instance.new("UIListLayout")
+    list.Parent = page
+    list.SortOrder = Enum.SortOrder.LayoutOrder
+    list.Padding = UDim.new(0, 8)
+    
+    list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        page.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 12)
+    end)
+    
+    activePages[pageName] = page
+    return page
+end
+
+local function handleAFKMenuProtection(isAutoActive)
+    if isAutoActive then
+        -- Khi cắm auto, thu hẹp tương tác menu tránh click ảo đè lên
+        MainFrame.ClipsDescendants = true
+        MainFrame.Active = false
+    else
+        MainFrame.Active = true
+    end
+end
+
+local function checkAnyAutoActive()
+    -- Hàm kiểm tra xem có cần khóa tương tác menu không, logic chức năng sẽ điền vào
+    return false
+end
+
+local function createTabChip(tabId, iconText, labelText, order)
+    local btn = Instance.new("TextButton")
+    btn.Name = "TabChip_" .. tabId
+    btn.Parent = ScrollTabContainer
+    btn.BackgroundColor3 = Theme.Card
+    btn.Size = UDim2.new(0, 72, 1, 0)
+    btn.Font = Enum.Font.GothamBold
+    btn.Text = iconText .. " " .. labelText
+    btn.TextColor3 = Theme.TextMuted
+    btn.TextSize = 9
+    btn.LayoutOrder = order
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 15) -- Dạng viên thuốc cực đẹp
+    
+    local stroke = Instance.new("UIStroke", btn)
+    stroke.Thickness = 1
+    stroke.Color = Theme.Border
+    
+    btn.MouseButton1Click:Connect(function()
+        for id, tabBtn in pairs(tabButtons) do
+            TweenService:Create(tabBtn.Btn, TweenInfo.new(0.2), {BackgroundColor3 = Theme.Card, TextColor3 = Theme.TextMuted}):Play()
+            TweenService:Create(tabBtn.Stroke, TweenInfo.new(0.2), {Color = Theme.Border}):Play()
+            if activePages[id] then activePages[id].Visible = false end
+        end
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.TextPrimary}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.2), {Color = Theme.Accent}):Play()
+        if activePages[tabId] then activePages[tabId].Visible = true end
+    end)
+    
+    tabButtons[tabId] = {Btn = btn, Stroke = stroke}
+    return btn
+end
+
+-- Hàm tạo Cần gạt nhỏ nằm góc phải (Switch/Toggle) thu hẹp tối đa Hitbox chống click nhầm
+local function createSwitchRow(parent, labelText, signalCallback)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 36)
+    row.BackgroundColor3 = Theme.Card
+    row.Parent = parent
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
+    Instance.new("UIStroke", row).Color = Theme.Border
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -60, 1, 0)
+    titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.GothamSemibold
+    titleLabel.Text = labelText
+    titleLabel.TextColor3 = Theme.TextPrimary
+    titleLabel.TextSize = 10.5
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = row
+    
+    -- Hitbox container của cần gạt được làm cực nhỏ gọn bên phải
+    local SwitchHitbox = Instance.new("TextButton")
+    SwitchHitbox.Name = "SwitchHitbox"
+    SwitchHitbox.Size = UDim2.new(0, 36, 0, 20)
+    SwitchHitbox.Position = UDim2.new(1, -46, 0.5, -10)
+    SwitchHitbox.BackgroundColor3 = Theme.SwitchOff
+    SwitchHitbox.Text = ""
+    SwitchHitbox.Parent = row
+    Instance.new("UICorner", SwitchHitbox).CornerRadius = UDim.new(1, 0)
+    
+    local Dot = Instance.new("Frame")
+    Dot.Name = "Dot"
+    Dot.Size = UDim2.new(0, 14, 0, 14)
+    Dot.Position = UDim2.new(0, 3, 0.5, -7)
+    Dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Dot.Parent = SwitchHitbox
+    Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
+    
+    local toggled = false
+    SwitchHitbox.MouseButton1Click:Connect(function()
+        toggled = not toggled
+        if toggled then
+            TweenService:Create(SwitchHitbox, TweenInfo.new(0.15), {BackgroundColor3 = Theme.SwitchOn}):Play()
+            TweenService:Create(Dot, TweenInfo.new(0.15), {Position = UDim2.new(1, -17, 0.5, -7)}):Play()
+        else
+            TweenService:Create(SwitchHitbox, TweenInfo.new(0.15), {BackgroundColor3 = Theme.SwitchOff}):Play()
+            TweenService:Create(Dot, TweenInfo.new(0.15), {Position = UDim2.new(0, 3, 0.5, -7)}):Play()
+        end
+        handleAFKMenuProtection(checkAnyAutoActive())
+        signalCallback(toggled)
+    end)
+    
+    return row
+end
+
+-- Hàm tạo Hộp Đóng/Mở tính năng (Collapsible Accordion Group) cực kỳ sạch sẽ
+local function createCollapsibleGroup(parent, headerText)
+    local accordion = Instance.new("Frame")
+    accordion.Size = UDim2.new(1, 0, 0, 34)
+    accordion.BackgroundColor3 = Theme.Card
+    accordion.ClipsDescendants = true
+    accordion.Parent = parent
+    Instance.new("UICorner", accordion).CornerRadius = UDim.new(0, 6)
+    local groupStroke = Instance.new("UIStroke", accordion)
+    groupStroke.Color = Theme.Border
+    
+    local headerBtn = Instance.new("TextButton")
+    headerBtn.Size = UDim2.new(1, 0, 0, 34)
+    headerBtn.BackgroundColor3 = Theme.Card
+    headerBtn.Font = Enum.Font.GothamBold
+    headerBtn.Text = "  " .. headerText
+    headerBtn.TextColor3 = Theme.Accent
+    headerBtn.TextSize = 11
+    headerBtn.TextXAlignment = Enum.TextXAlignment.Left
+    headerBtn.Parent = accordion
+    Instance.new("UICorner", headerBtn).CornerRadius = UDim.new(0, 6)
+    
+    local arrowIndicator = Instance.new("TextLabel")
+    arrowIndicator.Size = UDim2.new(0, 30, 1, 0)
+    arrowIndicator.Position = UDim2.new(1, -35, 0, 0)
+    arrowIndicator.BackgroundTransparency = 1
+    arrowIndicator.Font = Enum.Font.GothamBold
+    arrowIndicator.Text = "❯"
+    arrowIndicator.TextColor3 = Theme.TextMuted
+    arrowIndicator.TextSize = 11
+    arrowIndicator.Parent = headerBtn
+    
+    local contentContainer = Instance.new("Frame")
+    contentContainer.Name = "GroupContent"
+    contentContainer.Position = UDim2.new(0, 6, 0, 40)
+    contentContainer.Size = UDim2.new(1, -12, 0, 0)
+    contentContainer.BackgroundTransparency = 1
+    contentContainer.Parent = accordion
+    
+    local contentList = Instance.new("UIListLayout")
+    contentList.Parent = contentContainer
+    contentList.Padding = UDim.new(0, 6)
+    
+    local isOpen = false
+    contentList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        if isOpen then
+            contentContainer.Size = UDim2.new(1, -12, 0, contentList.AbsoluteContentSize.Y)
+            accordion.Size = UDim2.new(1, 0, 0, contentList.AbsoluteContentSize.Y + 46)
+        end
+    end)
+    
+    headerBtn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        if isOpen then
+            arrowIndicator.Text = "▼"
+            contentContainer.Size = UDim2.new(1, -12, 0, contentList.AbsoluteContentSize.Y)
+            accordion:TweenSize(UDim2.new(1, 0, 0, contentList.AbsoluteContentSize.Y + 46), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
+        else
+            arrowIndicator.Text = "❯"
+            accordion:TweenSize(UDim2.new(1, 0, 0, 34), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.25, true)
+        end
+    end)
+    
+    return contentContainer
+end
+
+-- Hàm tạo thanh kéo Slider mượt mà tối ưu khoảng cách di động
+local function createModernSlider(parent, labelText, minVal, maxVal, startVal, callback)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 0, 40)
+    container.BackgroundColor3 = Theme.Card
+    container.Parent = parent
+    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 6)
+    Instance.new("UIStroke", container).Color = Theme.Border
+    
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(0, 120, 0, 20)
+    txt.Position = UDim2.new(0, 10, 0, 2)
+    txt.BackgroundTransparency = 1
+    txt.Font = Enum.Font.GothamSemibold
+    txt.Text = labelText
+    txt.TextColor3 = Theme.TextMuted
+    txt.TextSize = 9.5
+    txt.TextXAlignment = Enum.TextXAlignment.Left
+    txt.Parent = container
+    
+    local valBox = Instance.new("TextBox")
+    valBox.Size = UDim2.new(0, 45, 0, 16)
+    valBox.Position = UDim2.new(1, -55, 0, 4)
+    valBox.BackgroundColor3 = Theme.InnerCard
+    valBox.Font = Enum.Font.GothamBold
+    valBox.Text = tostring(startVal)
+    valBox.TextColor3 = Theme.SwitchOn
+    valBox.TextSize = 10
+    valBox.Parent = container
+    Instance.new("UICorner", valBox).CornerRadius = UDim.new(0, 4)
+    
+    local bar = Instance.new("TextButton")
+    bar.Size = UDim2.new(1, -20, 0, 4)
+    bar.Position = UDim2.new(0, 10, 0, 26)
+    bar.BackgroundColor3 = Theme.InnerCard
+    bar.Text = ""
+    bar.Parent = container
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
+    
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((startVal - minVal)/(maxVal - minVal), 0, 1, 0)
+    fill.BackgroundColor3 = Theme.Accent
+    fill.BorderSizePixel = 0
+    fill.Parent = bar
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+    
+    local function update(pos)
+        local ratio = math.clamp((pos.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        local val = math.round(minVal + (ratio * (maxVal - minVal)))
+        valBox.Text = tostring(val)
+        fill.Size = UDim2.new(ratio, 0, 1, 0)
+        callback(val)
+    end
+    
+    local active = false
+    bar.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then active = true update(i.Position) end end)
+    UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then active = false end end)
+    UserInputService.InputChanged:Connect(function(i) if active and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then update(i.Position) end end)
+    return container
+end
+
+-- Hàm tạo Nút bấm đơn kích thước gọn
+local function createSimpleButton(parent, labelText, clickCallback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 32)
+    btn.BackgroundColor3 = Theme.Card
+    btn.Font = Enum.Font.GothamBold
+    btn.Text = labelText
+    btn.TextColor3 = Theme.TextPrimary
+    btn.TextSize = 10.5
+    btn.Parent = parent
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    Instance.new("UIStroke", btn).Color = Theme.Border
+    
+    btn.MouseButton1Click:Connect(clickCallback)
+    return btn
+end
+
+-- ==========================================================
+-- 🏢 BUILD 100% CẤU TRÚC PHÂN CẤP CÁC TRANG TÍNH NĂNG UI
+-- ==========================================================
+
+-- Tạo đầy đủ 7 đầu Tab Chips
+createTabChip("Farm", "⚔️", "FARM", 1)
+createTabChip("Monster", "👹", "QUÁI", 2)
+createTabChip("Player", "👤", "NGƯỜI", 3)
+createTabChip("Sam", "📍", "SAM", 4)
+createTabChip("Rename", "🏷️", "NPC", 5)
+createTabChip("NPC", "🧭", "ĐỊNH VỊ", 6)
+createTabChip("Island", "🗺️", "ĐẢO", 7)
+
+------------------------------------------------------------
+-- TRANG 1: FARM ĐẠO TẶC & TIỆN ÍCH
+------------------------------------------------------------
+local P_Farm = createPage("Farm")
+createSwitchRow(P_Farm, "⚙️ Tự Động Gom Thùng & Mix Nước", _G.UI_Signals.OnToggleAutoFarm)
+createSwitchRow(P_Farm, "🍓 Tự Động Nhặt Trái Ác Quỷ", _G.UI_Signals.OnToggleAutoFruit)
+createSwitchRow(P_Farm, "🧭 Tự Động Gom La Bàn Siêu Tốc", _G.UI_Signals.OnToggleAutoCompass)
+createSwitchRow(P_Farm, "♻️ Tự Động Hồi Sinh (Mỗi 6 Giây)", _G.UI_Signals.OnToggleAutoRespawn)
+createSwitchRow(P_Farm, "🚀 Kích Hoạt Tính Năng Fly (Bay)", _G.UI_Signals.OnToggleFly)
+createModernSlider(P_Farm, "⚡ Tốc Độ Bay Tối Đa", 1, 350, 80, _G.UI_Signals.OnFlySpeedChanged)
+
+------------------------------------------------------------
+-- TRANG 2: AUTO FARM QUÁI & BOSS NÂNG CẤP PHÍM CỘT
+------------------------------------------------------------
+local P_Monster = createPage("Monster")
+createSwitchRow(P_Monster, "⚔️ Kích Hoạt Auto Farm Quái (Loop)", _G.UI_Signals.OnToggleFarmMonster)
+
+-- Nhóm Hộp Đóng Mở Cấu Hình Vật Phẩm Farm
+local G_Item = createCollapsibleGroup(P_Monster, "🎒 Cấu Hình Vật Phẩm Cầm Tay")
+local ItemScroll = Instance.new("ScrollingFrame")
+ItemScroll.Size = UDim2.new(1, 0, 0, 60)
+ItemScroll.BackgroundTransparency = 1
+ItemScroll.CanvasSize = UDim2.new(0, 0, 0, 100)
+ItemScroll.ScrollBarThickness = 2
+ItemScroll.Parent = G_Item
+local ItemGrid = Instance.new("UIGridLayout")
+ItemGrid.CellSize = UDim2.new(0.5, -4, 0, 24)
+ItemGrid.CellPadding = UDim2.new(0, 6, 0, 6)
+ItemGrid.Parent = ItemScroll
+
+local function rebuildInventoryUI(itemsTable)
+    for _, c in ipairs(ItemScroll:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
+    for _, name in ipairs(itemsTable) do
+        local b = Instance.new("TextButton")
+        b.BackgroundColor3 = Theme.InnerCard
+        b.Font = Enum.Font.GothamSemibold
+        b.Text = name
+        b.TextColor3 = Theme.TextPrimary
+        b.TextSize = 9.5
+        b.Parent = ItemScroll
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
+        b.MouseButton1Click:Connect(function() _G.UI_Signals.OnSelectFarmItem(name) end)
+    end
+end
+createSimpleButton(G_Item, "🔄 Làm Mới Rương Vật Phẩm", function() _G.UI_Signals.OnRefreshItems(rebuildInventoryUI) end)
+createSwitchRow(G_Item, "Giữ Vũ Khí (Auto Equip)", _G.UI_Signals.OnToggleAutoEquip)
+
+-- Nhóm Hộp Đóng Mở Spam Chiêu Combo
+local G_Combo = createCollapsibleGroup(P_Monster, "⚡ Thiết Lập spam Combo Nhiều Chiêu")
+local ModeContainer = Instance.new("Frame")
+ModeContainer.Size = UDim2.new(1, 0, 0, 30)
+ModeContainer.BackgroundTransparency = 1
+ModeContainer.Parent = G_Combo
+local ModeGrid = Instance.new("UIGridLayout")
+ModeGrid.CellSize = UDim2.new(0, 100, 1, 0)
+ModeGrid.CellPadding = UDim2.new(0, 8, 0, 0)
+ModeGrid.Parent = ModeContainer
+
+for _, mode in ipairs({"Spam Skills", "Normal"}) do
+    local mb = Instance.new("TextButton")
+    mb.BackgroundColor3 = Theme.InnerCard
+    mb.Font = Enum.Font.GothamBold
+    mb.Text = mode
+    mb.TextColor3 = Theme.TextMuted
+    mb.TextSize = 9.5
+    mb.Parent = ModeContainer
+    Instance.new("UICorner", mb).CornerRadius = UDim.new(0, 4)
+    mb.MouseButton1Click:Connect(function() _G.UI_Signals.OnSelectFarmMode(mode) end)
+end
+
+-- Bàn phím Spam chiêu chia thành 2 cột tối ưu khoảng cách thiết bị di động
+local KeypadFrame = Instance.new("Frame")
+KeypadFrame.Size = UDim2.new(1, 0, 0, 80)
+KeypadFrame.BackgroundColor3 = Theme.InnerCard
+KeypadFrame.Parent = G_Combo
+Instance.new("UICorner", KeypadFrame).CornerRadius = UDim.new(0, 6)
+
+local ColL = Instance.new("Frame")
+ColL.Size = UDim2.new(0.5, -4, 1, 0)
+ColL.BackgroundTransparency = 1
+ColL.Parent = KeypadFrame
+local GridL = Instance.new("UIGridLayout")
+GridL.CellSize = UDim2.new(0.33, -4, 0, 30)
+GridL.CellPadding = UDim2.new(0, 4, 0, 6)
+GridL.Parent = ColL
+
+local ColR = Instance.new("Frame")
+ColR.Size = UDim2.new(0.5, -4, 1, 0)
+ColR.Position = UDim2.new(0.5, 4, 0, 0)
+ColR.BackgroundTransparency = 1
+ColR.Parent = KeypadFrame
+local GridR = Instance.new("UIGridLayout")
+GridR.CellSize = UDim2.new(0.33, -4, 0, 30)
+GridR.CellPadding = UDim2.new(0, 4, 0, 6)
+GridR.Parent = ColR
+
+local keysL = {"Z", "X", "C", "V", "B", "N"}
+local keysR = {"F", "G", "H", "J", "K", "L"}
+
+local function setupKeyButton(kName, pFrame)
+    local kBtn = Instance.new("TextButton")
+    kBtn.BackgroundColor3 = Theme.Card
+    kBtn.Font = Enum.Font.GothamBold
+    kBtn.Text = kName
+    kBtn.TextColor3 = Theme.TextMuted
+    kBtn.TextSize = 12
+    kBtn.Parent = pFrame
+    Instance.new("UICorner", kBtn).CornerRadius = UDim.new(0, 4)
+    
+    local kState = false
+    kBtn.MouseButton1Click:Connect(function()
+        kState = not kState
+        kBtn.TextColor3 = kState and Theme.AccentMuted or Theme.TextMuted
+        _G.UI_Signals.OnKeySpamToggled(kName, kState)
+    end)
+end
+for i=1, #keysL do setupKeyButton(keysL[i], ColL) end
+for i=1, #keysR do setupKeyButton(keysR[i], ColR) end
+
+-- Các cấp độ farm
+local G_Level = createCollapsibleGroup(P_Monster, "👹 Chọn Cấp Độ Farm Quái")
+local LvlGrid = Instance.new("UIGridLayout")
+LvlGrid.CellSize = UDim2.new(0.5, -4, 0, 30)
+LvlGrid.CellPadding = UDim2.new(0, 6, 0, 6)
+LvlGrid.Parent = G_Level
+
+for _, grp in ipairs({"Lv1 - Lv200", "Lv200 - Lv300", "Lv300 - Lv400", "Farm Toàn Bộ"}) do
+    local lb = Instance.new("TextButton")
+    lb.BackgroundColor3 = Theme.InnerCard
+    lb.Font = Enum.Font.GothamBold
+    lb.Text = grp
+    lb.TextColor3 = Theme.TextPrimary
+    lb.TextSize = 10
+    lb.Parent = G_Level
+    Instance.new("UICorner", lb).CornerRadius = UDim.new(0, 5)
+    lb.MouseButton1Click:Connect(function() _G.UI_Signals.OnSelectMonsterGroup(grp) end)
+end
+createModernSlider(P_Monster, "📏 Khoảng Cách Quái", 1, 300, 25, _G.UI_Signals.OnMonsterDistanceChanged)
+
+-- Hộp đóng mở quản lý Boss (Xoay Tua)
+local G_Boss = createCollapsibleGroup(P_Monster, "💀 Cấu Hình Auto Diệt Boss Xoay Tua")
+createSwitchRow(G_Boss, "Kích Hoạt Auto Diệt Boss", _G.UI_Signals.OnToggleAutoBoss)
+local BossGrid = Instance.new("UIGridLayout")
+BossGrid.CellSize = UDim2.new(0.5, -4, 0, 30)
+BossGrid.CellPadding = UDim2.new(0, 6, 0, 6)
+BossGrid.Parent = G_Boss
+
+local bossOrder = {"Lv20000 Whitebeard", "Lv8000 Gunner Captain", "Lv2000 Crocodile", "Lv2000 Vokun"}
+for _, bName in ipairs(bossOrder) do
+    local bBtn = Instance.new("TextButton")
+    bBtn.BackgroundColor3 = Theme.InnerCard
+    bBtn.Font = Enum.Font.GothamBold
+    bBtn.Text = "⬜ " .. bName
+    bBtn.TextColor3 = Theme.TextPrimary
+    bBtn.TextSize = 9.5
+    bBtn.Parent = G_Boss
+    Instance.new("UICorner", bBtn).CornerRadius = UDim.new(0, 5)
+    
+    local bToggled = false
+    bBtn.MouseButton1Click:Connect(function()
+        bToggled = not bToggled
+        bBtn.Text = bToggled and "✅ " .. bName or "⬜ " .. bName
+        bBtn.TextColor3 = bToggled and Theme.SwitchOn or Theme.TextPrimary
+        _G.UI_Signals.OnBossSelectToggled(bName, bToggled)
+    end)
+    
+    local short = string.gsub(bName, "Lv%d+ ", "")
+    createModernSlider(G_Boss, "🎯 K.Cách " .. short, 1, 300, 70, function(v) _G.UI_Signals.OnBossDistanceChanged(bName, v) end)
+end
+
+------------------------------------------------------------
+-- TRANG 3: TAB NGƯỜI CHƠI (PLAYER CONTROLS)
+------------------------------------------------------------
+local P_Player = createPage("Player")
+createSimpleButton(P_Player, "⚡ Dịch Chuyển Đến Người Chơi", _G.UI_Signals.OnTeleportToPlayer)
+createSwitchRow(P_Player, "👁️ Xem Trộm (Spectate)", _G.UI_Signals.OnToggleSpectatePlayer)
+createSwitchRow(P_Player, "⚔️ Tự Động Săn Người Chơi (Kill)", _G.UI_Signals.OnToggleKillPlayer)
+
+local G_PlrList = createCollapsibleGroup(P_Player, "📋 Danh Sách Người Chơi")
+local PlrScroll = Instance.new("ScrollingFrame")
+PlrScroll.Size = UDim2.new(1, 0, 0, 110)
+PlrScroll.BackgroundTransparency = 1
+PlrScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
+PlrScroll.ScrollBarThickness = 2
+PlrScroll.Parent = G_PlrList
+local PlrGrid = Instance.new("UIGridLayout")
+PlrGrid.CellSize = UDim2.new(0.5, -4, 0, 28)
+PlrGrid.CellPadding = UDim2.new(0, 6, 0, 6)
+PlrGrid.Parent = PlrScroll
+
+local function updatePlayersUI()
+    for _, c in ipairs(PlrScroll:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player then
+            local pb = Instance.new("TextButton")
+            pb.BackgroundColor3 = Theme.InnerCard
+            pb.Font = Enum.Font.GothamSemibold
+            pb.Text = p.DisplayName or p.Name
+            pb.TextColor3 = Theme.TextPrimary
+            pb.TextSize = 10
+            pb.Parent = PlrScroll
+            Instance.new("UICorner", pb).CornerRadius = UDim.new(0, 5)
+            pb.MouseButton1Click:Connect(function() _G.UI_Signals.OnSelectTargetPlayer(p) end)
+        end
+    end
+end
+Players.PlayerAdded:Connect(updatePlayersUI)
+Players.PlayerRemoving:Connect(updatePlayersUI)
+updatePlayersUI()
+
+------------------------------------------------------------
+-- TRANG 4: LUỒNG XỬ LÝ SAM UTILITY
+------------------------------------------------------------
+local P_Sam = createPage("Sam")
+createSimpleButton(P_Sam, "⚡ NHẬN SAM NGAY LẬP TỨC", _G.UI_Signals.OnInstantGetSam)
+createSwitchRow(P_Sam, "📜 TREO SAM (LẶP LẠI THEO THỜI GIAN)", _G.UI_Signals.OnToggleLoopSam)
+createSwitchRow(P_Sam, "🗑️ TỰ ĐỘNG VỨT LA BÀN TỰ ĐỘNG (BACKSPACE)", _G.UI_Signals.OnToggleAutoDropCompass)
+
+------------------------------------------------------------
+-- TRANG 5: ĐỔI TÊN NPC HÀNG LOẠT
+------------------------------------------------------------
+local P_Rename = createPage("Rename")
+createSwitchRow(P_Rename, "🏷️ Đổi Tên Toàn Bộ NPC Thành Secret Dealer", _G.UI_Signals.OnToggleRenameNPCs)
+
+------------------------------------------------------------
+-- TRANG 6: ĐỊNH VỊ NPC ACCORDION
+------------------------------------------------------------
+local P_NPC = createPage("NPC")
+local NPC_Groups = {
+	["DailyQuest"] = {"C0", "Cooker", "Fisherman", "Gemologist", "Sam"},
+	["Information"] = {"Bart Nospmis"},
+	["Quest"] = {"Bandits Leader", "Chill Billy", "Demon Hunter", "Explorer", "Fallen Captain", "Guard Captain", "Joe", "Marge Nospmis", "Old Beggar", "Rayleigh", "Traceur"},
+	["Secret"] = {"Lord", "Strange Dealer"},
+	["Shop"] = {"Anna", "Better Drink Merchant", "Boat Merchant", "Dancer", "Drink Merchant", "Fred The Blacksmith", "Lucy", "Mad Scientist", "Sniper Merchant", "Sword Merchant"}
+}
+
+for cat, list in pairs(NPC_Groups) do
+    local catGroup = createCollapsibleGroup(P_NPC, "📂 [" .. cat:upper() .. "]")
+    local catGrid = Instance.new("UIGridLayout")
+    catGrid.CellSize = UDim2.new(0.5, -4, 0, 26)
+    catGrid.CellPadding = UDim2.new(0, 6, 0, 6)
+    catGrid.Parent = catGroup
+    
+    for _, npc in ipairs(list) do
+        local nBtn = Instance.new("TextButton")
+        nBtn.BackgroundColor3 = Theme.InnerCard
+        nBtn.Font = Enum.Font.GothamSemibold
+        nBtn.Text = npc
+        nBtn.TextColor3 = Theme.TextPrimary
+        nBtn.TextSize = 9.5
+        nBtn.Parent = catGroup
+        Instance.new("UICorner", nBtn).CornerRadius = UDim.new(0, 4)
+        nBtn.MouseButton1Click:Connect(function() _G.UI_Signals.OnTeleportToNPC(cat, npc) end)
+    end
+end
+
+------------------------------------------------------------
+-- TRANG 7: BẢN ĐỒ DỊCH CHUYỂN ĐẢO
+------------------------------------------------------------
+local P_Island = createPage("Island")
+local islandList = {
+    {name = "Đảo Alabata", key = "A"}, {name = "Đảo Boss Aura", key = "B"}, {name = "Đảo Boss Kiếm", key = "B"},
+    {name = "Đảo Bar", key = "B"}, {name = "Đảo Bí Mật", key = "B"}, {name = "Đảo Cannon", key = "C"},
+    {name = "Đảo Cua", key = "C"}, {name = "Đảo Câu Cá", key = "C"}, {name = "Đảo Cave", key = "C"},
+    {name = "Đảo Cát Mini", key = "C"}, {name = "Đảo Cliffs", key = "C"}, {name = "Đảo Cát Mua Kiếm", key = "C"},
+    {name = "Đảo Cây", key = "C"}, {name = "Đảo Cát Mini 2", key = "C"}, {name = "Đảo Dừa", key = "D"},
+    {name = "Đảo Đá Mini", key = "D"}, {name = "Đảo Không Cây", key = "K"}, {name = "Đảo Khối Xây Gió", key = "K"},
+    {name = "Đảo Kiếm Thợ Rèn", key = "K"}, {name = "Đảo Nấu Ăn", key = "N"}, {name = "Đảo Núi Cao", key = "N"},
+    {name = "Đảo Núi Tầng", key = "N"}, {name = "Đảo Nhà", key = "N"}, {name = "Đảo Nút Đen", key = "N"},
+    {name = "Đảo Rừng", key = "R"}, {name = "Đảo Sam", key = "S"}, {name = "Đảo Tổng Bộ", key = "T"},
+    {name = "Đảo Tuyết Mua Súng", key = "T"}, {name = "Đảo Tím", key = "T"}, {name = "Đảo Tuyết Núi Lớn", key = "T"}
+}
+
+local orderKeys = {"A", "B", "C", "D", "K", "N", "R", "S", "T"}
+for _, key in ipairs(orderKeys) do
+    local isles = {}
+    for _, isl in ipairs(islandList) do if isl.key == key then table.insert(isles, isl.name) end end
+    
+    if #isles > 0 then
+        local islGroup = createCollapsibleGroup(P_Island, "📌 NHÓM CHỮ CÁI [" .. key .. "]")
+        local islGrid = Instance.new("UIGridLayout")
+        islGrid.CellSize = UDim2.new(0.5, -4, 0, 28)
+        islGrid.CellPadding = UDim2.new(0, 6, 0, 6)
+        islGrid.Parent = islGroup
+        
+        for _, name in ipairs(isles) do
+            local islBtn = Instance.new("TextButton")
+            islBtn.BackgroundColor3 = Theme.InnerCard
+            islBtn.Font = Enum.Font.GothamSemibold
+            islBtn.Text = name
+            islBtn.TextColor3 = Theme.TextPrimary
+            islBtn.TextSize = 9.5
+            islBtn.Parent = islGroup
+            Instance.new("UICorner", islBtn).CornerRadius = UDim.new(0, 5)
+            islBtn.MouseButton1Click:Connect(function() _G.UI_Signals.OnTeleportToIsland(name) end)
+        end
+    end
+end
+
+-- ==========================================================
+-- 🔄 ĐÓNG/MỞ MENU BAN ĐẦU
+-- ==========================================================
+local isMenuOpen = true
+local function toggleMenu()
+    isMenuOpen = not isMenuOpen
+    if isMenuOpen then
+        MainFrame.Visible = true
+        MainFrame:TweenSize(UDim2.new(0, 450, 0, 340), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.25, true)
+    else
+        MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), Enum.EasingDirection.In, Enum.EasingStyle.Back, 0.25, true, function() MainFrame.Visible = false end)
+    end
+end
+
+MiniBtn.MouseButton1Click:Connect(toggleMenu)
+UserInputService.InputBegan:Connect(function(input, gp)
+    if not gp and input.KeyCode == Enum.KeyCode.P then toggleMenu() end
+end)
+
+-- Kích hoạt Tab mặc định lúc mở đầu
+if tabButtons["Farm"] then tabButtons["Farm"].Btn:Click() end
+print("✅ Giao diện Supreme Hub V5.0 hoàn tất! Sẵn sàng nhận logic chức năng từ Gemini.")
