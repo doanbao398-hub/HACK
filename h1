@@ -1,7 +1,7 @@
 -- =====================================================================
--- 💎 SUPREME HUB V4.9: MULTI-KEY SPAM COMBO + AUTO EQUIP & SAM & NPC
+-- 💎 SUPREME HUB V4.8: FULL CODE FIX KÉO CHUỘT + AUTO CHỌN VẬT PHẨM FARM
 -- Tác giả: Gemini | Phím tắt: [P] hoặc Bấm nút Mini trên màn hình
--- Thiết kế: Đã bổ sung đầy đủ hệ thống Chọn Phím 2 Cột + Auto Equip + Sam + Đổi tên NPC
+-- Thiết kế: Kích thước nhỏ gọn 460x360 phù hợp cho cả Điện thoại và PC
 -- Hiệu ứng: Nền và viền 7 sắc cầu vòng (RGB) chuyển màu liên tục
 -- =====================================================================
 
@@ -25,7 +25,7 @@ local FRUIT_INTERVAL = 3.0
 local COMPASS_INTERVAL = 1.0 
 local RESPAWN_INTERVAL = 6.0
 
-local SPAM_KEY_DELAY = 0.05  -- Tối ưu tốc độ spam combo nhiều phím
+local SPAM_KEY_DELAY = 0.1  
 local MONSTER_CLICK_DELAY = 10.0
 local NORMAL_FARM_CLICK_DELAY = 0.3 
 
@@ -43,17 +43,11 @@ _G.autoCompass = false
 _G.autoMonsterFarm = false
 _G.autoBossFarm = false 
 _G.autoRespawn = false
+_G.FarmMode = "Spam C" 
 
--- Cấu hình hệ thống Chọn vật phẩm tự động (V4.8)
-_G.SelectedFarmItem = ""     
-_G.AutoEquipItem = false     
-
--- Cấu hình Hệ thống Chế độ Farm & Spam Nhiều Phím Mới (V4.9)
-_G.FarmMode = "Spam Skills"  -- "Spam Skills" hoặc "Normal"
-_G.SelectedSpamKeys = {
-    ["Z"] = false, ["X"] = false, ["C"] = true, ["V"] = false, ["B"] = false, ["N"] = false,
-    ["F"] = false, ["G"] = false, ["H"] = false, ["J"] = false, ["K"] = false, ["L"] = false
-}
+-- Cấu hình hệ thống Chọn vật phẩm tự động
+_G.SelectedFarmItem = ""     -- Tên vật phẩm được chọn để farm
+_G.AutoEquipItem = false     -- Trạng thái Bật/Tắt tự động chọn lại vật phẩm
 
 -- Cấu hình hệ thống Fly
 _G.isFlying = false
@@ -63,18 +57,6 @@ _G.FlySpeed = 80
 local selectedTargetPlayer = nil
 _G.autoKillPlayer = false
 local spectatingPlayer = false
-
--- Cấu hình hệ thống Treo Sam & Đổi tên NPC (V4.7)
-_G.AutoTreoSam = false
-_G.AutoVutSam = false
-local IntervalTreoSam = 60 
-
-local NEW_NPC_NAME = "Secret Dealer"
-local originalNpcNames = {}
-local blacklistedNpcFolders = {
-    ["information"] = true,
-    ["islands"] = true
-}
 
 local task_wait = task.wait
 local task_spawn = task.spawn
@@ -295,7 +277,7 @@ local function TeleportToNPC(categoryName, npcName)
 end
 
 -- ==========================================================
--- 🎒 HỆ THỐNG KIỂM TRA & TỰ ĐỘNG LẤY VẬT PHẨM (EQUIP CORE - V4.8)
+-- 🎒 HỆ THỐNG KIỂM TRA & TỰ ĐỘNG LẤY VẬT PHẨM (EQUIP CORE)
 -- ==========================================================
 local function equipSelectedFarmItem()
     if not _G.AutoEquipItem or _G.SelectedFarmItem == "" then return end
@@ -304,6 +286,7 @@ local function equipSelectedFarmItem()
     local hum = char:FindFirstChildOfClass("Humanoid")
     if not hum or hum.Health <= 0 then return end
     
+    -- Nếu nhân vật chưa cầm trên tay món đồ đó
     if not char:FindFirstChild(_G.SelectedFarmItem) then
         local backpack = player:FindFirstChild("Backpack")
         if backpack then
@@ -317,36 +300,15 @@ local function equipSelectedFarmItem()
     end
 end
 
+-- Khởi chạy vòng lặp giám sát cất/đổi vũ khí để tự trang bị lại liên tục
 task_spawn(function()
     while true do
         if _G.AutoEquipItem and (_G.autoMonsterFarm or _G.autoBossFarm) then
             pcall(equipSelectedFarmItem)
         end
-        task_wait(0.5) 
+        task_wait(0.5) -- Kiểm tra lại mỗi 0.5 giây
     end
 end)
-
--- ==========================================================
--- ⚡ ENGINE SPAM COMBO NHIỀU PHÍM ĐA NHIỆM MỚI (V4.9)
--- ==========================================================
-local function executeSkillSpamEngine()
-    local activeKeys = {}
-    for key, enabled in pairs(_G.SelectedSpamKeys) do
-        if enabled then
-            local enumKey = Enum.KeyCode[key]
-            if enumKey then table.insert(activeKeys, enumKey) end
-        end
-    end
-    
-    if #activeKeys == 0 then return end
-    
-    for i = 1, #activeKeys do
-        local targetKey = activeKeys[i]
-        VirtualInputManager:SendKeyEvent(true, targetKey, false, game)
-        task_wait(0.01)
-        VirtualInputManager:SendKeyEvent(false, targetKey, false, game)
-    end
-end
 
 -- ==========================================================
 -- 🚀 CHỨC NĂNG HỆ THỐNG FLY
@@ -436,7 +398,9 @@ local function startKillPlayerMechanics()
         while _G.autoKillPlayer and selectedTargetPlayer do
             if player.Character and player.Character:FindFirstChildOfClass("Humanoid") and player.Character.Humanoid.Health > 0 then
                 if selectedTargetPlayer.Character and selectedTargetPlayer.Character:FindFirstChildOfClass("Humanoid") and selectedTargetPlayer.Character.Humanoid.Health > 0 then
-                    executeSkillSpamEngine()
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
+                    task_wait(0.02)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game)
                 end
             end
             task_wait(SPAM_KEY_DELAY)
@@ -449,7 +413,7 @@ local function startKillPlayerMechanics()
         local hrp = getHRP()
         if not hrp or not player.Character or not player.Character:FindFirstChildOfClass("Humanoid") or player.Character.Humanoid.Health <= 0 then return end
 
-        if selectedTargetPlayer.Character and selectedTargetPlayer.Character:FindFirst("HumanoidRootPart") then
+        if selectedTargetPlayer.Character and selectedTargetPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local targetHRP = selectedTargetPlayer.Character.HumanoidRootPart
             local targetHum = selectedTargetPlayer.Character:FindFirstChildOfClass("Humanoid")
             
@@ -463,132 +427,6 @@ local function startKillPlayerMechanics()
         _G.autoKillPlayer = false
         stopKillPlayer()
     end)
-end
-
--- =========================================================================
--- 🦾 LUỒNG XỬ LÝ CHỨC NĂNG SAM UTILITY (V4.7)
--- =========================================================================
-local function getCompassCount()
-    local count = 0
-    local backpack = player:FindFirstChild("Backpack")
-    local char = player.Character
-    
-    if backpack then
-        for _, item in ipairs(backpack:GetChildren()) do
-            if item.Name == "Compass" then count = count + 1 end
-        end
-    end
-    if char then
-        for _, item in ipairs(char:GetChildren()) do
-            if item.Name == "Compass" then count = count + 1 end
-        end
-    end
-    return count
-end
-
-local function chayLuongLaySam()
-    local character = player.Character
-    local myRoot = character and character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-
-    local sam = workspace:FindFirstChild("Ignore") 
-        and workspace.Ignore:FindFirstChild("NPCs") 
-        and workspace.Ignore.NPCs:FindFirstChild("DailyQuest") 
-        and workspace.Ignore.NPCs.DailyQuest:FindFirstChild("Sam")
-
-    local originalPlayerCFrame = myRoot.CFrame
-    local initialCompassCount = getCompassCount()
-
-    if sam and sam:FindFirstChild("HumanoidRootPart") then
-        local samRoot = sam.HumanoidRootPart
-        local clickDetector = samRoot:FindFirstChild("ClickDetector")
-        
-        if clickDetector then
-            clickDetector.MaxActivationDistance = math.huge
-            myRoot.CFrame = samRoot.CFrame * CFrame.new(0, 0, -3)
-            task_wait(0.15)
-            
-            if fireclickdetector then
-                fireclickdetector(clickDetector)
-            else
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                task_wait(0.01)
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-            end
-        else
-            return
-        end
-    else
-        return
-    end
-
-    local playerGui = player:WaitForChild("PlayerGui")
-    local questGui = playerGui:WaitForChild("QuestGui", 5)
-    if questGui then
-        local dialogue = questGui:FindFirstChild("Dialogue", 5)
-        local options = dialogue and dialogue:FindFirstChild("Options", 5)
-        
-        if options then
-            local optionButton = options:WaitForChild("Option", 5)
-            if optionButton then
-                task_wait(0.4)
-                
-                local x = optionButton.AbsolutePosition.X + (optionButton.AbsoluteSize.X / 2)
-                local y = optionButton.AbsolutePosition.Y + (optionButton.AbsoluteSize.Y / 2) + 58
-                
-                for i = 1, 4 do
-                    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-                    task_wait(0.1)
-                    VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
-                    if i < 4 then task_wait(0.15) end
-                end
-                
-                task_wait(1.0)
-                local currentCompassCount = getCompassCount()
-                
-                if currentCompassCount > initialCompassCount or currentCompassCount > 0 then
-                    local leaveButton = options:FindFirstChild("Leave")
-                    if leaveButton then
-                        task_wait(0.05)
-                        local lx = leaveButton.AbsolutePosition.X + (leaveButton.AbsoluteSize.X / 2)
-                        local ly = leaveButton.AbsolutePosition.Y + (leaveButton.AbsoluteSize.Y / 2) + 58
-                        VirtualInputManager:SendMouseButtonEvent(lx, ly, 0, true, game, 1)
-                        task_wait(0.05)
-                        VirtualInputManager:SendMouseButtonEvent(lx, ly, 0, false, game, 1)
-                    end
-                    task_wait(0.1)
-                    myRoot.CFrame = originalPlayerCFrame
-                end
-            end
-        end
-    end
-end
-
--- =========================================================================
--- 🦾 LUỒNG XỬ LÝ CHỨC NĂNG RENAME NPC (V4.7)
--- =========================================================================
-local function toggleRenameNPCs(enable)
-    local npcsFolder = workspace:FindFirstChild("Ignore") and workspace.Ignore:FindFirstChild("NPCs")
-    if not npcsFolder then return end
-
-    for _, subFolder in ipairs(npcsFolder:GetChildren()) do
-        if subFolder:IsA("Folder") then
-            local folderNameLower = string.lower(subFolder.Name)
-            if not blacklistedNpcFolders[folderNameLower] then
-                for _, npc in ipairs(subFolder:GetChildren()) do
-                    if npc:IsA("Model") then
-                        if enable then
-                            if not originalNpcNames[npc] then originalNpcNames[npc] = npc.Name end
-                            npc.Name = NEW_NPC_NAME
-                        else
-                            if originalNpcNames[npc] then npc.Name = originalNpcNames[npc] end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    if not enable then table.clear(originalNpcNames) end
 end
 
 -- ==========================================================
@@ -605,7 +443,7 @@ local function startMonsterFarmMechanics()
     stopMonsterFarm()
     if not _G.autoMonsterFarm then return end
 
-    -- Vòng lặp tấn công dựa trên chế độ chọn phím đa nhiệm mới
+    -- Vòng lặp tấn công
     task_spawn(function()
         while _G.autoMonsterFarm do
             if player.Character and player.Character:FindFirstChildOfClass("Humanoid") and player.Character.Humanoid.Health > 0 then
@@ -614,15 +452,20 @@ local function startMonsterFarmMechanics()
                 end
                 
                 if currentTarget then
+                    -- Đảm bảo luôn cầm đúng món đồ được chọn
                     if _G.AutoEquipItem then pcall(equipSelectedFarmItem) end
 
-                    if _G.FarmMode == "Spam Skills" then
-                        executeSkillSpamEngine()
+                    if _G.FarmMode == "Spam C" then
+                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
+                        task_wait(0.02)
+                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game)
                         task_wait(SPAM_KEY_DELAY)
                     elseif _G.FarmMode == "Normal" then
+                        -- Click cố định góc phải màn hình
                         local viewSize = camera.ViewportSize
                         local clickX = viewSize.X - 100
                         local clickY = viewSize.Y - 100
+                        
                         VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
                         task_wait(0.02)
                         VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
@@ -637,10 +480,10 @@ local function startMonsterFarmMechanics()
         end
     end)
 
-    -- Giữ chuột ổn định khi dùng chiêu
+    -- Vòng lặp giữ chuột ổn định
     task_spawn(function()
         while _G.autoMonsterFarm do
-            if _G.FarmMode == "Spam Skills" and currentTarget and currentTarget.Parent and player.Character then
+            if _G.FarmMode == "Spam C" and currentTarget and currentTarget.Parent and player.Character then
                 local viewSize = camera.ViewportSize
                 VirtualInputManager:SendMouseButtonEvent(viewSize.X - 100, viewSize.Y - 100, 0, true, game, 0)
                 task_wait(0.02)
@@ -686,20 +529,24 @@ local function startBossFarmMechanics()
     stopBossFarm()
     if not _G.autoBossFarm then return end
 
-    -- Vòng lặp tấn công Boss nâng cấp phím
+    -- Vòng lặp tấn công Boss
     task_spawn(function()
         while _G.autoBossFarm do
             if player.Character and player.Character:FindFirstChildOfClass("Humanoid") and player.Character.Humanoid.Health > 0 then
                 if currentBossTarget and currentBossTarget.Parent and currentBossTarget:FindFirstChildOfClass("Humanoid") and currentBossTarget:FindFirstChildOfClass("Humanoid").Health > 0 then
                     if _G.AutoEquipItem then pcall(equipSelectedFarmItem) end
                     
-                    if _G.FarmMode == "Spam Skills" then
-                        executeSkillSpamEngine()
+                    if _G.FarmMode == "Spam C" then
+                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
+                        task_wait(0.02)
+                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game)
                         task_wait(SPAM_KEY_DELAY)
                     elseif _G.FarmMode == "Normal" then
+                        -- Click cố định góc phải màn hình cho Boss
                         local viewSize = camera.ViewportSize
                         local clickX = viewSize.X - 100
                         local clickY = viewSize.Y - 100
+                        
                         VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
                         task_wait(0.02)
                         VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
@@ -714,9 +561,10 @@ local function startBossFarmMechanics()
         end
     end)
 
+    -- Vòng lặp giữ chuột ổn định cho Boss
     task_spawn(function()
         while _G.autoBossFarm do
-            if _G.FarmMode == "Spam Skills" and currentBossTarget and currentBossTarget.Parent and player.Character then
+            if _G.FarmMode == "Spam C" and currentBossTarget and currentBossTarget.Parent and player.Character then
                 local viewSize = camera.ViewportSize
                 VirtualInputManager:SendMouseButtonEvent(viewSize.X - 100, viewSize.Y - 100, 0, true, game, 0)
                 task_wait(0.02)
@@ -726,6 +574,7 @@ local function startBossFarmMechanics()
         end
     end)
 
+    -- Vòng lặp di chuyển dịch chuyển Boss (Heartbeat)
     bossFarmConnection = RunService.Heartbeat:Connect(function()
         if not _G.autoBossFarm then return end
         local hrp = getHRP()
@@ -734,7 +583,7 @@ local function startBossFarmMechanics()
         local aliveFolder = workspace:FindFirstChild("Alive")
         if not aliveFolder then hrp.AssemblyLinearVelocity = Vector3_new(0, 0, 0) return end
 
-        if currentBossTarget and currentBossTarget.Parent and currentBossTarget:FindFirst("HumanoidRootPart") then
+        if currentBossTarget and currentBossTarget.Parent and currentBossTarget:FindFirstChild("HumanoidRootPart") then
             local humanoid = currentBossTarget:FindFirstChildOfClass("Humanoid")
             if humanoid and humanoid.Health > 0 then
                 hrp.AssemblyLinearVelocity = Vector3_new(0, 0, 0)
@@ -923,47 +772,7 @@ local function startAutoRespawnLoop()
 end
 
 -- ==========================================================
--- ⚙️ VÒNG LẶP TREO/VỨT SAM THỜI GIAN NGẦM (V4.7)
--- ==========================================================
-task_spawn(function()
-    while true do
-        if _G.AutoTreoSam then
-            pcall(chayLuongLaySam)
-            task_wait(IntervalTreoSam)
-        else
-            task_wait(1)
-        end
-    end
-end)
-
-task_spawn(function()
-    while true do
-        if _G.AutoVutSam then
-            local backpack = player:FindFirstChild("Backpack")
-            local char = player.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            
-            local compass = (backpack and backpack:FindFirstChild("Compass")) or (char and char:FindFirstChild("Compass"))
-            if compass and hum then
-                if compass.Parent == backpack then
-                    pcall(function() hum:EquipTool(compass) end)
-                    task_wait(0.2)
-                end
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Backspace, false, game)
-                task_wait(0.05)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Backspace, false, game)
-                task_wait(0.3)
-            else
-                task_wait(1)
-            end
-        else
-            task_wait(1)
-        end
-    end
-end)
-
--- ==========================================================
--- ⚙️ HÀM KÉO DRAG HỆ THỐNG
+-- ⚙️ HÀM KÉO DRAG KHÔNG DÍNH CHUỘT
 -- ==========================================================
 local function perfectDrag(frame, handle)
     local dragging, dragInput, dragStart, startPos
@@ -1030,7 +839,9 @@ local MainStroke = Instance.new("UIStroke")
 MainStroke.Parent = MainFrame
 MainStroke.Thickness = 1.5
 
--- 🌈 ENGINE RGB 7 SẮC CẦU VỒNG CHUYỂN ĐỘNG
+-- ==========================================================
+-- 🌈 ENGINE 7 SẮC CẦU VỒNG CHUYỂN ĐỘNG LIÊN TỤC
+-- ==========================================================
 local rainbowElements = {MainFrame, MiniBtn}
 local strokeElements = {MainStroke, MiniStroke}
 
@@ -1038,6 +849,7 @@ RunService.RenderStepped:Connect(function()
     local t = tick()
     local color = Color3.fromHSV((t * 0.15) % 1, 0.7, 0.12)  
     local strokeColor = Color3.fromHSV((t * 0.25) % 1, 0.8, 1) 
+    
     for i = 1, #rainbowElements do rainbowElements[i].BackgroundColor3 = color end
     for i = 1, #strokeElements do strokeElements[i].Color = strokeColor end
 end)
@@ -1054,50 +866,47 @@ perfectDrag(MainFrame, TopBar)
 local Title = Instance.new("TextLabel")
 Title.Parent = TopBar
 Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 8, 0, 0)
-Title.Size = UDim2.new(0, 95, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Size = UDim2.new(0, 110, 1, 0)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "💎 SUPREME v4.9"
+Title.Text = "💎 SUPREME V4.8"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 10
+Title.TextSize = 12
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
--- Container Tab hỗ trợ full 7 tab
 local TabContainer = Instance.new("Frame")
 TabContainer.Parent = TopBar
 TabContainer.BackgroundTransparency = 1
-TabContainer.Position = UDim2.new(1, -350, 0, 8)
-TabContainer.Size = UDim2.new(0, 340, 0, 28)
+TabContainer.Position = UDim2.new(1, -345, 0, 8)
+TabContainer.Size = UDim2.new(0, 335, 0, 28)
 
 local UIListLayout_Tabs = Instance.new("UIListLayout")
 UIListLayout_Tabs.Parent = TabContainer
 UIListLayout_Tabs.FillDirection = Enum.FillDirection.Horizontal
 UIListLayout_Tabs.HorizontalAlignment = Enum.HorizontalAlignment.Right
 UIListLayout_Tabs.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout_Tabs.Padding = UDim.new(0, 2)
+UIListLayout_Tabs.Padding = UDim.new(0, 3)
 
 local function createTabButton(name, text, order)
     local btn = Instance.new("TextButton")
     btn.Name = name
     btn.Parent = TabContainer
     btn.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
-    btn.Size = UDim2.new(0, 46, 1, 0)
+    btn.Size = UDim2.new(0, 64, 1, 0)
     btn.Font = Enum.Font.GothamBold
     btn.Text = text
     btn.TextColor3 = Color3.fromRGB(160, 165, 175)
-    btn.TextSize = 7.5
+    btn.TextSize = 8
     btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     return btn
 end
 
-local BtnTabFarm = createTabButton("TabFarm", "⚔️ FARM", 1)
+local BtnTabFarm = createTabButton("TabFarm", "⚔️ ĐẠO TẶC", 1)
 local BtnTabMonster = createTabButton("TabMonster", "👹 QUÁI", 2)
-local BtnTabPlayer = createTabButton("TabPlayer", "👤 NGƯỜI", 3)
-local BtnTabSam = createTabButton("TabSam", "📍 SAM", 4)       
-local BtnTabRename = createTabButton("TabRename", "🏷️ NPC", 5)  
-local BtnTabNPC = createTabButton("TabNPC", "🗺️ ĐỊNH VỊ", 6)
-local BtnTabIsland = createTabButton("TabIsland", "🗺️ ĐẢO", 7)
+local BtnTabPlayer = createTabButton("TabPlayer", "👤 NGƯỜI", 3) 
+local BtnTabNPC = createTabButton("TabNPC", "📍 NPC", 4)
+local BtnTabIsland = createTabButton("TabIsland", "🗺️ ĐẢO", 5)
 
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Parent = MainFrame
@@ -1114,11 +923,13 @@ local function createToggle(parent, text)
     btn.Text = text .. " : OFF"
     btn.TextColor3 = Color3.fromRGB(255, 100, 100)
     btn.TextSize = 11
+    
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     local stroke = Instance.new("UIStroke")
     stroke.Parent = btn
     stroke.Color = Color3.fromRGB(200, 60, 60)
     stroke.Thickness = 1
+    
     return btn, stroke
 end
 
@@ -1304,7 +1115,7 @@ BtnToggleFly.MouseButton1Click:Connect(function()
     end
 end)
 
--- ==================== TRANG 2: FARM QUÁI & BOSS (BỔ SUNG COMBO PHÍM ĐA NHIỆM) ====================
+-- ==================== TRANG 2: FARM QUÁI & BOSS (CÓ CHỌN VẬT PHẨM) ====================
 local PageMonster = Instance.new("ScrollingFrame")
 PageMonster.Parent = ContentFrame
 PageMonster.BackgroundTransparency = 1
@@ -1324,7 +1135,9 @@ end)
 
 local BtnToggleMonster, StrokeMonster = createToggle(PageMonster, "⚔️ Kích Hoạt Auto Farm Quái")
 
--- [TÍNH NĂNG V4.8]: HỆ THỐNG SELECT VẬT PHẨM VÀ REFRESH BUTTON
+-- ==========================================================
+-- 🛠️ [TÍNH NĂNG MỚI]: HỆ THỐNG SELECT VẬT PHẨM VÀ REFRESH BUTTON
+-- ==========================================================
 local ItemSectionTitle = Instance.new("TextLabel")
 ItemSectionTitle.Parent = PageMonster
 ItemSectionTitle.BackgroundTransparency = 1
@@ -1375,6 +1188,7 @@ CurrentItemLabel.TextColor3 = Color3.fromRGB(180, 185, 195)
 CurrentItemLabel.TextSize = 10
 CurrentItemLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+-- Container chứa danh sách vật phẩm dạng cuộn nhỏ (Dropdown gọn)
 local ItemScrollList = Instance.new("Frame")
 ItemScrollList.Parent = PageMonster
 ItemScrollList.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
@@ -1397,10 +1211,14 @@ GridItemLayout.CellSize = UDim2.new(0, 130, 0, 24)
 GridItemLayout.CellPadding = UDim2.new(0, 5, 0, 5)
 
 local function updateInventoryUI()
+    -- Xóa toàn bộ nút cũ trong danh sách chọn vật phẩm
     for _, child in ipairs(ItemInnerScroll:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
+
     local itemsFound = {}
+    
+    -- Quét trong Backpack
     local backpack = player:FindFirstChild("Backpack")
     if backpack then
         for _, obj in ipairs(backpack:GetChildren()) do
@@ -1409,6 +1227,8 @@ local function updateInventoryUI()
             end
         end
     end
+    
+    -- Quét trong Character (Đồ đang cầm trên tay)
     local char = player.Character
     if char then
         for _, obj in ipairs(char:GetChildren()) do
@@ -1417,6 +1237,8 @@ local function updateInventoryUI()
             end
         end
     end
+
+    -- Khởi tạo nút bấm cho từng vật phẩm tìm thấy
     for itemName, _ in pairs(itemsFound) do
         local btn = Instance.new("TextButton")
         btn.Parent = ItemInnerScroll
@@ -1426,20 +1248,25 @@ local function updateInventoryUI()
         btn.TextColor3 = Color3.fromRGB(235, 235, 235)
         btn.TextSize = 10
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+        
         local s = Instance.new("UIStroke", btn)
         s.Color = (_G.SelectedFarmItem == itemName) and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(50, 50, 60)
         
         btn.MouseButton1Click:Connect(function()
             _G.SelectedFarmItem = itemName
             CurrentItemLabel.Text = "Đang chọn: " .. itemName
-            updateInventoryUI()
+            updateInventoryUI() -- vẽ lại màu trạng thái nút được chọn
             if _G.AutoEquipItem then pcall(equipSelectedFarmItem) end
         end)
     end
+    
     ItemInnerScroll.CanvasSize = UDim2.new(0, 0, 0, GridItemLayout.AbsoluteContentSize.Y + 5)
 end
 
-BtnRefreshItems.MouseButton1Click:Connect(updateInventoryUI)
+BtnRefreshItems.MouseButton1Click:Connect(function()
+    updateInventoryUI()
+end)
+
 BtnToggleAutoEquip.MouseButton1Click:Connect(function()
     _G.AutoEquipItem = not _G.AutoEquipItem
     if _G.AutoEquipItem then
@@ -1455,9 +1282,13 @@ BtnToggleAutoEquip.MouseButton1Click:Connect(function()
         StrokeAutoEquip.Color = Color3.fromRGB(200, 60, 60)
     end
 end)
+
+-- Chạy cập nhật danh sách lần đầu
 updateInventoryUI()
 
--- [TÍNH NĂNG V4.9 NEW]: HỆ THỐNG SELECT CHẾ ĐỘ FARM VÀ PHÍM SPAM CHIA 2 CỘT
+-- ==========================================================
+-- ⚙️ TIẾP TỤC CÁC GIAO DIỆN CHỌN CHẾ ĐỘ CHUNG KHÁC
+-- ==========================================================
 local ModeTitle = Instance.new("TextLabel")
 ModeTitle.Parent = PageMonster
 ModeTitle.BackgroundTransparency = 1
@@ -1478,7 +1309,7 @@ GridModeLayout.Parent = ModeGridContainer
 GridModeLayout.CellSize = UDim2.new(0, 205, 0, 30)
 GridModeLayout.CellPadding = UDim2.new(0, 10, 0, 0)
 
-local modeButtons = {"Spam Skills", "Normal"}
+local modeButtons = {"Spam C", "Normal"}
 local modeButtonsCache = {}
 
 for _, modeName in ipairs(modeButtons) do
@@ -1486,14 +1317,16 @@ for _, modeName in ipairs(modeButtons) do
     btn.Parent = ModeGridContainer
     btn.BackgroundColor3 = (modeName == _G.FarmMode) and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(30, 30, 40)
     btn.Font = Enum.Font.GothamBold
-    btn.Text = modeName == "Normal" and "Farm Thường (Góc Phải)" or "Spam Combo Chiêu"
+    btn.Text = modeName == "Normal" and "Farm Thường (Góc Phải)" or "Spam Phím [C]"
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.TextSize = 11
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     
-    local s = Instance.new("UIStroke", btn)
+    local s = Instance.new("UIStroke")
+    s.Parent = btn
     s.Thickness = 1
     s.Color = (modeName == _G.FarmMode) and Color3.fromRGB(46, 255, 113) or Color3.fromRGB(50, 50, 65)
+    
     modeButtonsCache[modeName] = {Button = btn, Stroke = s}
 
     btn.MouseButton1Click:Connect(function()
@@ -1508,74 +1341,6 @@ for _, modeName in ipairs(modeButtons) do
         if _G.autoBossFarm then startBossFarmMechanics() end
     end)
 end
-
--- TẠO PANEL CHỌN CÁC NÚT SPAM PHÍM CHIA THÀNH 2 CỘT GỌN GÀNG (V4.9 NEW)
-local SkillSectionTitle = Instance.new("TextLabel")
-SkillSectionTitle.Parent = PageMonster
-SkillSectionTitle.BackgroundTransparency = 1
-SkillSectionTitle.Size = UDim2.new(1, 0, 0, 16)
-SkillSectionTitle.Font = Enum.Font.GothamBold
-SkillSectionTitle.Text = "🎮 THIẾT LẬP PHÍM TỰ ĐỘNG SPAM COMBO (BẬT NHIỀU NÚT):"
-SkillSectionTitle.TextColor3 = Color3.fromRGB(255, 110, 180)
-SkillSectionTitle.TextSize = 10
-SkillSectionTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-local KeyboardFrame = Instance.new("Frame")
-KeyboardFrame.Parent = PageMonster
-KeyboardFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-KeyboardFrame.Size = UDim2.new(1, 0, 0, 105)
-Instance.new("UICorner", KeyboardFrame).CornerRadius = UDim.new(0, 6)
-local KeyboardStroke = Instance.new("UIStroke", KeyboardFrame)
-KeyboardStroke.Color = Color3.fromRGB(45, 45, 55)
-
--- Cột bên trái: Z, X, C, V, B, N
-local ColLeft = Instance.new("Frame")
-ColLeft.Parent = KeyboardFrame
-ColLeft.BackgroundTransparency = 1
-ColLeft.Position = UDim2.new(0, 6, 0, 6)
-ColLeft.Size = UDim2.new(0.5, -9, 1, -12)
-
-local GridLeft = Instance.new("UIGridLayout")
-GridLeft.Parent = ColLeft
-GridLeft.CellSize = UDim2.new(0.33, -4, 0, 40)
-GridLeft.CellPadding = UDim2.new(0, 4, 0, 6)
-
--- Cột bên phải: F, G, H, J, K, L
-local ColRight = Instance.new("Frame")
-ColRight.Parent = KeyboardFrame
-ColRight.BackgroundTransparency = 1
-ColRight.Position = UDim2.new(0.5, 3, 0, 6)
-ColRight.Size = UDim2.new(0.5, -9, 1, -12)
-
-local GridRight = Instance.new("UIGridLayout")
-GridRight.Parent = ColRight
-GridRight.CellSize = UDim2.new(0.33, -4, 0, 40)
-GridRight.CellPadding = UDim2.new(0, 4, 0, 6)
-
-local listColLeft = {"Z", "X", "C", "V", "B", "N"}
-local listColRight = {"F", "G", "H", "J", "K", "L"}
-
-local function createKeyButton(keyName, parentContainer)
-    local btn = Instance.new("TextButton")
-    btn.Parent = parentContainer
-    btn.BackgroundColor3 = _G.SelectedSpamKeys[keyName] and Color3.fromRGB(235, 77, 75) or Color3.fromRGB(33, 33, 42)
-    btn.Font = Enum.Font.GothamBold
-    btn.Text = keyName
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 13
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
-    local s = Instance.new("UIStroke", btn)
-    s.Color = _G.SelectedSpamKeys[keyName] and Color3.fromRGB(255, 120, 120) or Color3.fromRGB(55, 55, 70)
-    
-    btn.MouseButton1Click:Connect(function()
-        _G.SelectedSpamKeys[keyName] = not _G.SelectedSpamKeys[keyName]
-        btn.BackgroundColor3 = _G.SelectedSpamKeys[keyName] and Color3.fromRGB(235, 77, 75) or Color3.fromRGB(33, 33, 42)
-        s.Color = _G.SelectedSpamKeys[keyName] and Color3.fromRGB(255, 120, 120) or Color3.fromRGB(55, 55, 70)
-    end)
-end
-
-for i = 1, #listColLeft do createKeyButton(listColLeft[i], ColLeft) end
-for i = 1, #listColRight do createKeyButton(listColRight[i], ColRight) end
 
 local Spacer = Instance.new("Frame")
 Spacer.Parent = PageMonster
@@ -1605,9 +1370,11 @@ for _, groupName in ipairs(levelButtons) do
     btn.TextSize = 11
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     
-    local s = Instance.new("UIStroke", btn)
+    local s = Instance.new("UIStroke")
+    s.Parent = btn
     s.Thickness = 1
     s.Color = (groupName == currentSelectedGroup) and Color3.fromRGB(80, 140, 255) or Color3.fromRGB(50, 50, 65)
+    
     levelButtonsCache[groupName] = {Button = btn, Stroke = s}
 
     btn.MouseButton1Click:Connect(function()
@@ -1663,7 +1430,8 @@ for _, bName in ipairs(bossListOrder) do
     btn.TextSize = 10
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     
-    local s = Instance.new("UIStroke", btn)
+    local s = Instance.new("UIStroke")
+    s.Parent = btn
     s.Thickness = 1
     s.Color = Color3.fromRGB(65, 45, 50)
 
@@ -1817,6 +1585,7 @@ local function updatePlayerListUI()
             local s = Instance.new("UIStroke", btn)
             s.Thickness = 1
             s.Color = (selectedTargetPlayer == p) and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(55, 55, 65)
+
             playerButtonsCache[p] = {Button = btn, Stroke = s}
 
             btn.MouseButton1Click:Connect(function()
@@ -1883,117 +1652,7 @@ Players.PlayerAdded:Connect(updatePlayerListUI)
 Players.PlayerRemoving:Connect(updatePlayerListUI)
 updatePlayerListUI()
 
--- ==================== TRANG 4: TAB TREO SAM (V4.7 TÍCH HỢP) ====================
-local PageSam = Instance.new("ScrollingFrame")
-PageSam.Parent = ContentFrame
-PageSam.BackgroundTransparency = 1
-PageSam.Size = UDim2.new(1, 0, 1, 0)
-PageSam.ScrollBarThickness = 0
-PageSam.BorderSizePixel = 0
-PageSam.Visible = false
-
-local UIListLayout_Sam = Instance.new("UIListLayout")
-UIListLayout_Sam.Parent = PageSam
-UIListLayout_Sam.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout_Sam.Padding = UDim.new(0, 8)
-
-UIListLayout_Sam:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    PageSam.CanvasSize = UDim2.new(0, 0, 0, UIListLayout_Sam.AbsoluteContentSize.Y + 15)
-end)
-
-local BtnQuestNow = Instance.new("TextButton")
-BtnQuestNow.Parent = PageSam
-BtnQuestNow.BackgroundColor3 = Color3.fromRGB(30, 45, 65)
-BtnQuestNow.Size = UDim2.new(1, 0, 0, 42)
-BtnQuestNow.Font = Enum.Font.GothamBold
-BtnQuestNow.Text = "⚡ NHẬN SAM NGAY LẬP TỨC"
-BtnQuestNow.TextColor3 = Color3.fromRGB(100, 210, 255)
-BtnQuestNow.TextSize = 12
-Instance.new("UICorner", BtnQuestNow).CornerRadius = UDim.new(0, 6)
-local Stroke1 = Instance.new("UIStroke", BtnQuestNow)
-Stroke1.Color = Color3.fromRGB(45, 90, 140)
-
-BtnQuestNow.MouseButton1Click:Connect(function()
-    BtnQuestNow.Text = "⏳ ĐANG CHẠY LUỒNG..."
-    chayLuongLaySam()
-    BtnQuestNow.Text = "⚡ NHẬN SAM NGAY LẬP TỨC"
-end)
-
-local BtnToggleTreo, StrokeTreo = createToggle(PageSam, "📜 TREO SAM (LẶP LẠI)")
-local BtnToggleVut, StrokeVut = createToggle(PageSam, "🗑️ TỰ ĐỘNG VỨT LA BÀN (BACKSPACE)")
-
-BtnToggleTreo.MouseButton1Click:Connect(function()
-    _G.AutoTreoSam = not _G.AutoTreoSam
-    if _G.AutoTreoSam then
-        BtnToggleTreo.Text = "📜 TREO SAM (LẶP LẠI) : ON"
-        BtnToggleTreo.TextColor3 = Color3.fromRGB(80, 255, 120)
-        StrokeTreo.Color = Color3.fromRGB(0, 230, 100)
-    else
-        BtnToggleTreo.Text = "📜 TREO SAM (LẶP LẠI) : OFF"
-        BtnToggleTreo.TextColor3 = Color3.fromRGB(255, 100, 100)
-        StrokeTreo.Color = Color3.fromRGB(200, 60, 60)
-    end
-end)
-
-BtnToggleVut.MouseButton1Click:Connect(function()
-    _G.AutoVutSam = not _G.AutoVutSam
-    if _G.AutoVutSam then
-        BtnToggleVut.Text = "🗑️ TỰ ĐỘNG VỨT LA BÀN : ON"
-        BtnToggleVut.TextColor3 = Color3.fromRGB(80, 255, 120)
-        StrokeVut.Color = Color3.fromRGB(0, 230, 100)
-    else
-        BtnToggleVut.Text = "🗑️ TỰ ĐỘNG VỨT LA BÀN : OFF"
-        BtnToggleVut.TextColor3 = Color3.fromRGB(255, 100, 100)
-        StrokeVut.Color = Color3.fromRGB(200, 60, 60)
-    end
-end)
-
--- ==================== TRANG 5: TAB ĐỔI TÊN NPC (V4.7 TÍCH HỢP) ====================
-local PageRename = Instance.new("ScrollingFrame")
-PageRename.Parent = ContentFrame
-PageRename.BackgroundTransparency = 1
-PageRename.Size = UDim2.new(1, 0, 1, 0)
-PageRename.ScrollBarThickness = 0
-PageRename.BorderSizePixel = 0
-PageRename.Visible = false
-
-local UIListLayout_Rename = Instance.new("UIListLayout")
-UIListLayout_Rename.Parent = PageRename
-UIListLayout_Rename.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout_Rename.Padding = UDim.new(0, 8)
-
-UIListLayout_Rename:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    PageRename.CanvasSize = UDim2.new(0, 0, 0, UIListLayout_Rename.AbsoluteContentSize.Y + 15)
-end)
-
-local NpcTitleInfo = Instance.new("TextLabel")
-NpcTitleInfo.Parent = PageRename
-NpcTitleInfo.BackgroundTransparency = 1
-NpcTitleInfo.Size = UDim2.new(1, 0, 0, 20)
-NpcTitleInfo.Font = Enum.Font.GothamBold
-NpcTitleInfo.Text = "🏷️ ĐỔI TÊN NPC HÀNG LOẠT"
-NpcTitleInfo.TextColor3 = Color3.fromRGB(240, 240, 240)
-NpcTitleInfo.TextSize = 11
-NpcTitleInfo.TextXAlignment = Enum.TextXAlignment.Left
-
-local BtnToggleRename, StrokeRename = createToggle(PageRename, "🏷️ Đổi Tên Toàn Bộ NPC")
-
-BtnToggleRename.MouseButton1Click:Connect(function()
-    _G.RenameNPCsEnabled = not _G.RenameNPCsEnabled
-    if _G.RenameNPCsEnabled then
-        BtnToggleRename.Text = "🏷️ Đổi Tên Toàn Bộ NPC : ON"
-        BtnToggleRename.TextColor3 = Color3.fromRGB(80, 255, 120)
-        StrokeRename.Color = Color3.fromRGB(0, 230, 100)
-        toggleRenameNPCs(true)
-    else
-        BtnToggleRename.Text = "🏷️ Đổi Tên Toàn Bộ NPC : OFF"
-        BtnToggleRename.TextColor3 = Color3.fromRGB(255, 100, 100)
-        StrokeRename.Color = Color3.fromRGB(200, 60, 60)
-        toggleRenameNPCs(false)
-    end
-end)
-
--- ==================== TRANG 6: TAB ĐỊNH VỊ NPC ====================
+-- ==================== TRANG 4: TAB NPC TELEPORT ====================
 local PageNPC = Instance.new("ScrollingFrame")
 PageNPC.Parent = ContentFrame
 PageNPC.BackgroundTransparency = 1
@@ -2114,7 +1773,7 @@ for category, data in pairs(NPC_Data) do
 	end)
 end
 
--- ==================== TRANG 7: BẢN ĐỒ ĐẢO ====================
+-- ==================== TRANG 5: BẢN ĐỒ ĐẢO ====================
 local PageIsland = Instance.new("ScrollingFrame")
 PageIsland.Parent = ContentFrame
 PageIsland.BackgroundTransparency = 1
@@ -2197,28 +1856,22 @@ local function switchTab(tabName)
     PageFarm.Visible = (tabName == "Farm")
     PageMonster.Visible = (tabName == "Monster")
     PagePlayer.Visible = (tabName == "Player")
-    PageSam.Visible = (tabName == "Sam")
-    PageRename.Visible = (tabName == "Rename")
     PageNPC.Visible = (tabName == "NPC")
     PageIsland.Visible = (tabName == "Island")
     
-    if tabName == "Monster" then updateInventoryUI() end 
+    if tabName == "Monster" then updateInventoryUI() end -- Tự refresh danh sách vũ khí khi mở trang Monster
 
-    TweenService:Create(BtnTabFarm, TweenInfo.new(0.15), {BackgroundColor3 = (tabName == "Farm") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "Farm") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
-    TweenService:Create(BtnTabMonster, TweenInfo.new(0.15), {BackgroundColor3 = (tabName == "Monster") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "Monster") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
-    TweenService:Create(BtnTabPlayer, TweenInfo.new(0.15), {BackgroundColor3 = (tabName == "Player") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "Player") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
-    TweenService:Create(BtnTabSam, TweenInfo.new(0.15), {BackgroundColor3 = (tabName == "Sam") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "Sam") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
-    TweenService:Create(BtnTabRename, TweenInfo.new(0.15), {BackgroundColor3 = (tabName == "Rename") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "Rename") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
-    TweenService:Create(BtnTabNPC, TweenInfo.new(0.15), {BackgroundColor3 = (tabName == "NPC") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "NPC") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
-    TweenService:Create(BtnTabIsland, TweenInfo.new(0.15), {BackgroundColor3 = (tabName == "Island") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "Island") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
+    TweenService:Create(BtnTabFarm, TweenInfo.new(0.2), {BackgroundColor3 = (tabName == "Farm") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "Farm") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
+    TweenService:Create(BtnTabMonster, TweenInfo.new(0.2), {BackgroundColor3 = (tabName == "Monster") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "Monster") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
+    TweenService:Create(BtnTabPlayer, TweenInfo.new(0.2), {BackgroundColor3 = (tabName == "Player") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "Player") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
+    TweenService:Create(BtnTabNPC, TweenInfo.new(0.2), {BackgroundColor3 = (tabName == "NPC") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "NPC") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
+    TweenService:Create(BtnTabIsland, TweenInfo.new(0.2), {BackgroundColor3 = (tabName == "Island") and Color3.fromRGB(50, 90, 160) or Color3.fromRGB(30, 35, 45), TextColor3 = (tabName == "Island") and Color3.fromRGB(255,255,255) or Color3.fromRGB(150, 160, 180)}):Play()
 end
 
 switchTab("Farm")
 BtnTabFarm.MouseButton1Click:Connect(function() switchTab("Farm") end)
 BtnTabMonster.MouseButton1Click:Connect(function() switchTab("Monster") end)
 BtnTabPlayer.MouseButton1Click:Connect(function() switchTab("Player") end)
-BtnTabSam.MouseButton1Click:Connect(function() switchTab("Sam") end)
-BtnTabRename.MouseButton1Click:Connect(function() switchTab("Rename") end)
 BtnTabNPC.MouseButton1Click:Connect(function() switchTab("NPC") end)
 BtnTabIsland.MouseButton1Click:Connect(function() switchTab("Island") end)
 
@@ -2246,7 +1899,7 @@ player.CharacterAdded:Connect(function(newCharacter)
     local hrp = newCharacter:WaitForChild("HumanoidRootPart", 10)
     if hrp then
         task_wait(1.5)
-        updateInventoryUI() 
+        updateInventoryUI() -- Refresh lại khi nhân vật hồi sinh
         if _G.autoMonsterFarm then startMonsterFarmMechanics() end
         if _G.autoBossFarm then startBossFarmMechanics() end
         if _G.autoFarm then task_spawn(mainFarmEngine) end
@@ -2255,4 +1908,4 @@ player.CharacterAdded:Connect(function(newCharacter)
     end
 end)
 
-print("✅ SUPREME HUB V4.9: Tích hợp thành công Phím Spam Chiêu Combo 2 Cột & Auto Equip & Sam & NPC!")
+print("✅ SUPREME HUB V4.8: Tích hợp thành công Auto Equip Item & Chế độ Farm Boss (Normal + Spam C)!")
