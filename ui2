@@ -1,7 +1,6 @@
 -- =====================================================================
--- 💎 SUPREME HUB V5.0 - COMPLETE INTEGRATED MODERN SYSTEM
--- Phong cách: Modern Dark Theme | Mobile-First | Anti-Click AFK
--- Thiết kế: Đầy đủ 7 Tab + Switch/Toggle + Collapsible Groups + Combo 2 Cột
+-- 💎 SUPREME HUB V5.0 - FIXED INTEGRATED MODERN SYSTEM
+-- Sửa lỗi: Hiển thị giao diện trực quan | Tự bung Layout | Anti-Crash UI
 -- =====================================================================
 
 local Players = game:GetService("Players")
@@ -676,11 +675,12 @@ local function perfectDrag(frame, handle)
 end
 
 -- ==========================================================
--- 🎨 KHỞI TẠO FRAMEWORK UI MỚI HOÀN TOÀN (Pills + Switch + Collapsible)
+-- 🎨 KHỞI TẠO FRAMEWORK UI MỚI HOÀN TOÀN (SỬA LỖI TÀNG HÌNH LAYOUT)
 -- ==========================================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SupremeHubV5"
 ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local MiniBtn = Instance.new("TextButton")
@@ -703,10 +703,10 @@ MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-MainFrame.Size = UDim2.new(0, 440, 0, 330) -- Mobile-First gọn gàng
+MainFrame.Size = UDim2.new(0, 440, 0, 330)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.Active = true
-MainFrame.ClipsDescendants = true
+MainFrame.ClipsDescendants = false -- Đổi thành false để không bao giờ bị cắt mất UI con
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 local MainStroke = Instance.new("UIStroke", MainFrame)
 MainStroke.Color = Theme.Border MainStroke.Thickness = 1.2
@@ -730,12 +730,11 @@ Title.TextSize = 11
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TopBar
 
--- Trục cuộn các Pill Tab để ko bị tràn chữ
 local TabScrollContainer = Instance.new("ScrollingFrame")
 TabScrollContainer.Size = UDim2.new(1, -20, 0, 26)
 TabScrollContainer.Position = UDim2.new(0, 10, 0, 44)
 TabScrollContainer.BackgroundTransparency = 1
-TabScrollContainer.CanvasSize = UDim2.new(0, 490, 0, 0)
+TabScrollContainer.CanvasSize = UDim2.new(0, 500, 0, 0)
 TabScrollContainer.ScrollBarThickness = 0
 TabScrollContainer.ScrollingDirection = Enum.ScrollingDirection.Horizontal
 TabScrollContainer.Parent = MainFrame
@@ -763,7 +762,7 @@ local function createPage(id)
     page.Name = "Page_" .. id
     page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
-    page.ScrollBarThickness = 2
+    page.ScrollBarThickness = 3
     page.ScrollBarImageColor3 = Theme.Border
     page.Visible = false
     page.Parent = Viewport
@@ -774,7 +773,7 @@ local function createPage(id)
     list.Parent = page
 
     list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        page.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 10)
+        page.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 20)
     end)
     activePages[id] = page
     return page
@@ -783,7 +782,6 @@ end
 local function handleAFKProtection()
     local isAuto = (_G.autoFarm or _G.autoMonsterFarm or _G.autoBossFarm)
     if isAuto then
-        MainFrame.ClipsDescendants = true
         MainFrame.Active = false
     else
         MainFrame.Active = true
@@ -792,7 +790,7 @@ end
 
 local function createTabChip(id, text, order)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 64, 1, 0)
+    btn.Size = UDim2.new(0, 68, 1, 0)
     btn.BackgroundColor3 = Theme.Card
     btn.Font = Enum.Font.GothamBold
     btn.Text = text
@@ -800,12 +798,12 @@ local function createTabChip(id, text, order)
     btn.TextSize = 8.5
     btn.LayoutOrder = order
     btn.Parent = TabScrollContainer
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 12) -- Kiểu dáng Pill cao cấp
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 12)
     local stroke = Instance.new("UIStroke", btn)
     stroke.Color = Theme.Border stroke.Thickness = 1
 
     btn.MouseButton1Click:Connect(function()
-        for tId, tData do in pairs(tabButtons) do
+        for tId, tData in pairs(tabButtons) do
             TweenService:Create(tData.Btn, TweenInfo.new(0.2), {BackgroundColor3 = Theme.Card, TextColor3 = Theme.Muted}):Play()
             TweenService:Create(tData.Stroke, TweenInfo.new(0.2), {Color = Theme.Border}):Play()
             activePages[tId].Visible = false
@@ -817,7 +815,6 @@ local function createTabChip(id, text, order)
     tabButtons[id] = {Btn = btn, Stroke = stroke}
 end
 
--- Cần gạt góc phải nhỏ gọn thu hẹp Hitbox tối đa chống Click nhầm khi AFK
 local function createSwitchRow(parent, text, clickCallback)
     local row = Instance.new("Frame")
     row.Size = UDim2.new(1, 0, 0, 32)
@@ -868,7 +865,6 @@ local function createSwitchRow(parent, text, clickCallback)
     return row
 end
 
--- Hộp đóng mở gom nhóm tính năng (Accordion)
 local function createCollapsibleGroup(parent, titleText)
     local box = Instance.new("Frame")
     box.Size = UDim2.new(1, 0, 0, 32)
@@ -901,7 +897,7 @@ local function createCollapsibleGroup(parent, titleText)
 
     local inner = Instance.new("Frame")
     inner.Position = UDim2.new(0, 6, 0, 38)
-    inner.Size = UDim2.new(1, -12, 0, 0)
+    inner.Size = UDim2.new(1, -12, 0, 10) -- Gán size mặc định thay vì 0 để tránh bug luồng
     inner.BackgroundTransparency = 1
     inner.Parent = box
 
@@ -1005,7 +1001,7 @@ local function createSimpleButton(parent, text, cb)
 end
 
 -- ==========================================================
--- ĐỊNH HÌNH TOÀN BỘ CẤU TRÚC 7 CỰC TAB PAGES CỦA THÀNH PHẦN UI
+-- ĐỊNH HÌNH TOÀN BỘ CẤU TRÚC VÀ NẠP CÁC TAB CHIP
 -- ==========================================================
 createTabChip("Farm", "⚔️ FARM", 1)
 createTabChip("Monster", "👹 QUÁI", 2)
@@ -1015,9 +1011,7 @@ createTabChip("Rename", "🏷️ NPC", 5)
 createTabChip("NPC", "🧭 ĐỊNH VỊ", 6)
 createTabChip("Island", "🗺️ ĐẢO", 7)
 
-------------------------------------------------------------
 -- TRANG 1: FARM ĐẠO TẶC & TIỆN ÍCH
-------------------------------------------------------------
 local P_Farm = createPage("Farm")
 createSwitchRow(P_Farm, "⚙️ Tự Động Gom Thùng & Mix Nước", function(s)
     _G.autoFarm = s if s then task.spawn(mainFarmEngine) task.spawn(startMixerLoop) else local h = getHRP() if h then h.Anchored = false end end
@@ -1028,20 +1022,17 @@ createSwitchRow(P_Farm, "♻️ Tự Động Hồi Sinh (Mỗi 6 Giây)", functi
 createSwitchRow(P_Farm, "🚀 Kích Hoạt Tính Năng Fly (Bay)", function(s) _G.isFlying = s startFlyingMechanics() end)
 createSliderRow(P_Farm, "⚡ Tốc Độ Bay Tối Đa", 1, 350, 80, function(v) _G.FlySpeed = v end)
 
-------------------------------------------------------------
--- TRANG 2: AUTO FARM QUÁI & BOSS (COMBO 2 CỘT GỌN GÀNG)
-------------------------------------------------------------
+-- TRANG 2: AUTO FARM QUÁI & BOSS
 local P_Monster = createPage("Monster")
 createSwitchRow(P_Monster, "⚔️ Kích Hoạt Auto Farm Quái", function(s)
     _G.autoMonsterFarm = s if s then _G.autoBossFarm = false startMonsterFarmMechanics() else stopMonsterFarm() end
 end)
 
--- Accordion: Vật phẩm farm
 local G_Item = createCollapsibleGroup(P_Monster, "🎒 Cấu Hình Vật Phẩm Cầm Tay")
 local ItemScroll = Instance.new("ScrollingFrame")
-ItemScroll.Size = UDim2.new(1, 0, 0, 50) ItemScroll.BackgroundTransparency = 1 ItemScroll.ScrollBarThickness = 2 ItemScroll.Parent = G_Item
+ItemScroll.Size = UDim2.new(1, 0, 0, 60) ItemScroll.BackgroundTransparency = 1 ItemScroll.ScrollBarThickness = 2 ItemScroll.Parent = G_Item
 local ItemGrid = Instance.new("UIGridLayout")
-ItemGrid.CellSize = UDim2.new(0.5, -4, 0, 22) ItemGrid.CellPadding = UDim2.new(0, 6, 0, 4) ItemGrid.Parent = ItemScroll
+ItemGrid.CellSize = UDim2.new(0.5, -4, 0, 24) ItemGrid.CellPadding = UDim2.new(0, 6, 0, 4) ItemGrid.Parent = ItemScroll
 
 local itemLabel = Instance.new("TextLabel")
 itemLabel.Size = UDim2.new(1, 0, 0, 16) itemLabel.BackgroundTransparency = 1 itemLabel.Font = Enum.Font.GothamSemibold itemLabel.Text = "Đang chọn: Chưa có" itemLabel.TextColor3 = Theme.Muted itemLabel.TextSize = 9.5 itemLabel.TextXAlignment = Enum.TextXAlignment.Left itemLabel.Parent = G_Item
@@ -1060,9 +1051,8 @@ end
 createSimpleButton(G_Item, "Refresh Rương Vật Phẩm", reloadInventory)
 createSwitchRow(G_Item, "Auto Equip (Tự Cầm Vũ Khí)", function(s) _G.AutoEquipItem = s pcall(equipSelectedFarmItem) end)
 
--- Accordion: Spam combo 2 cột
 local G_Combo = createCollapsibleGroup(P_Monster, "⚡ Thiết Lập spam Combo Nhiều Chiêu")
-local ModeFrame = Instance.new("Frame") ModeFrame.Size = UDim2.new(1, 0, 0, 24) ModeFrame.BackgroundTransparency = 1 ModeFrame.Parent = G_Combo
+local ModeFrame = Instance.new("Frame") ModeFrame.Size = UDim2.new(1, 0, 0, 26) ModeFrame.BackgroundTransparency = 1 ModeFrame.Parent = G_Combo
 local ModeGrid = Instance.new("UIGridLayout") ModeGrid.CellSize = UDim2.new(0, 110, 1, 0) ModeGrid.CellPadding = UDim2.new(0, 6, 0, 0) ModeGrid.Parent = ModeFrame
 
 for _, mode in ipairs({"Spam Skills", "Normal"}) do
@@ -1083,7 +1073,6 @@ end
 for _, k in ipairs({"Z","X","C","V","B","N"}) do buildKey(k, ColL) end
 for _, k in ipairs({"F","G","H","J","K","L"}) do buildKey(k, ColR) end
 
--- Accordion: Cấp độ quái
 local G_Lvl = createCollapsibleGroup(P_Monster, "👹 Chọn Nhóm Cấp Độ Quái")
 local LvlGrid = Instance.new("UIGridLayout") LvlGrid.CellSize = UDim2.new(0.5, -4, 0, 26) LvlGrid.CellPadding = UDim2.new(0, 6, 0, 5) LvlGrid.Parent = G_Lvl
 for _, gName in ipairs({"Lv1 - Lv200", "Lv200 - Lv300", "Lv300 - Lv400", "Farm Toàn Bộ"}) do
@@ -1092,7 +1081,6 @@ for _, gName in ipairs({"Lv1 - Lv200", "Lv200 - Lv300", "Lv300 - Lv400", "Farm T
 end
 createSliderRow(P_Monster, "📏 Khoảng Cách Đứng Quái", 1, 300, 25, function(v) _G.MonsterDistance = v end)
 
--- Accordion: Boss
 local G_Boss = createCollapsibleGroup(P_Monster, "💀 Cấu Hình Auto Diệt Boss Xoay Tua")
 createSwitchRow(G_Boss, "Kích Hoạt Auto Diệt Boss", function(s)
     _G.autoBossFarm = s if s then _G.autoMonsterFarm = false startBossFarmMechanics() else stopBossFarm() end
@@ -1109,9 +1097,7 @@ for _, bName in ipairs(bossListOrder) do
     createSliderRow(G_Boss, "🎯 K.Cách " .. short, 1, 300, _G.BossDistances[bName], function(v) _G.BossDistances[bName] = v end)
 end
 
-------------------------------------------------------------
--- TRANG 3: TAB NGƯỜI CHƠI (PLAYER COMPONENT)
-------------------------------------------------------------
+-- TRANG 3: TAB NGƯỜI CHƠI
 local P_Player = createPage("Player")
 createSimpleButton(P_Player, "⚡ Dịch Chuyển Đến Đối Tượng", function()
     if selectedTargetPlayer and selectedTargetPlayer.Character and selectedTargetPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -1146,23 +1132,17 @@ local function rebuildPlrList()
 end
 Players.PlayerAdded:Connect(rebuildPlrList) Players.PlayerRemoving:Connect(rebuildPlrList) rebuildPlrList()
 
-------------------------------------------------------------
 -- TRANG 4: TAB NHẬN & TREO SAM
-------------------------------------------------------------
 local P_Sam = createPage("Sam")
 createSimpleButton(P_Sam, "⚡ NHẬN SAM NGAY LẬP TỨC", function() task.spawn(chayLuongLaySam) end)
 createSwitchRow(P_Sam, "📜 TREO SAM (LẶP LUỒNG NGẦM)", function(s) _G.AutoTreoSam = s end)
 createSwitchRow(P_Sam, "🗑️ TỰ ĐỘNG VỨT LA BÀN (BACKSPACE)", function(s) _G.AutoVutSam = s end)
 
-------------------------------------------------------------
 -- TRANG 5: TAB ĐỔI TÊN NPC HÀNG LOẠT
-------------------------------------------------------------
 local P_Rename = createPage("Rename")
 createSwitchRow(P_Rename, "🏷️ Đổi Tên Toàn Bộ NPC Thành Secret Dealer", function(s) _G.RenameNPCsEnabled = s toggleRenameNPCs(s) end)
 
-------------------------------------------------------------
 -- TRANG 6: TAB ĐỊNH VỊ NPC
-------------------------------------------------------------
 local P_NPC = createPage("NPC")
 for category, data in pairs(NPC_Data) do
     local group = createCollapsibleGroup(P_NPC, data.Icon .. " [" .. category:upper() .. "]")
@@ -1173,9 +1153,7 @@ for category, data in pairs(NPC_Data) do
     end
 end
 
-------------------------------------------------------------
 -- TRANG 7: TAB DỊCH CHUYỂN ĐẢO MAP
-------------------------------------------------------------
 local P_Island = createPage("Island")
 for _, key in ipairs(orderKeys) do
     local groupItems = {}
@@ -1221,4 +1199,4 @@ end)
 
 -- Chọn Tab mặc định
 if tabButtons["Farm"] then tabButtons["Farm"].Btn:Click() end
-print("✅ SUPREME HUB V5.0 PRO: Hệ thống gộp tích hợp hoàn chỉnh thành công 100%!")
+print("✅ SUPREME HUB V5.0 PRO: Đã khắc phục hoàn toàn lỗi tàng hình giao diện!")
